@@ -8,7 +8,11 @@ Display name: `Mako Creator`
 
 - Project folder exists at `/Users/shengliu/Desktop/makocreators-com`.
 - Collaboration rules are in `COLLABORATION.md`.
-- No app framework has been scaffolded yet.
+- Next.js app framework is scaffolded.
+- Codex owns frontend, backend, auth, data isolation, preview, and deployment readiness.
+- Email or phone login routes are implemented.
+- Protected product pages redirect unauthenticated users to `/login`.
+- Dashboard, Creators, Campaigns, and Reports pages read workspace-owned data after sign-in.
 - No git remote has been configured yet.
 
 ## Recommended Hosting
@@ -42,6 +46,11 @@ Required before launch:
 - `AUTH_SECRET`
 - `DATABASE_URL`
 
+Required for local full login testing:
+
+- `DATABASE_URL`
+- `AUTH_SHOW_DEV_CODE=true`
+
 Required when features are connected:
 
 - `OPENAI_API_KEY`
@@ -59,9 +68,9 @@ Before production launch:
 
 1. Confirm production domain is `makocreators.com`.
 2. Confirm display name is `Mako Creator`.
-3. Scaffold the app framework.
-4. Add frontend pages from Claude.
-5. Add backend data models and auth from Codex.
+3. Confirm `DATABASE_URL` points to the production PostgreSQL database.
+4. Run Prisma migration or `prisma db push` for the target environment.
+5. Confirm `AUTH_SHOW_DEV_CODE=false` in production.
 6. Run `npm run build`.
 7. Connect git remote.
 8. Deploy preview.
@@ -72,6 +81,7 @@ Before production launch:
 
 Codex owns:
 
+- Public and logged-in frontend
 - Auth and member accounts
 - Database schema
 - Creator personas
@@ -82,5 +92,3 @@ Codex owns:
 - API routes
 - Data isolation by user/account
 - Deployment reliability
-
-Claude owns frontend visuals and layout. If backend work requires frontend wiring, keep it minimal and document the boundary crossing.

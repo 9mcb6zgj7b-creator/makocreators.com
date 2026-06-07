@@ -1,4 +1,7 @@
 import { AppShell, Icon, type AppShellUser } from "@/components/app-shell";
+import type { getDashboardData } from "@/lib/workspace-data";
+
+type DashboardData = Awaited<ReturnType<typeof getDashboardData>>;
 
 const supportItems = [
   {
@@ -11,8 +14,9 @@ const supportItems = [
   },
 ];
 
-export function DashboardHome({ user }: { user: AppShellUser }) {
+export function DashboardHome({ user, dashboard }: { user: AppShellUser; dashboard: DashboardData }) {
   const firstName = user.name?.split(/[ @+]/)[0] || "there";
+  const selectedCampaign = dashboard.campaigns[0];
 
   return (
     <AppShell activeNav="home" user={user}>
@@ -32,25 +36,61 @@ export function DashboardHome({ user }: { user: AppShellUser }) {
             <h2 id="operation-title">Campaign Actions</h2>
             <label className="campaign-select">
               <span>Campaign</span>
-              <select defaultValue="">
-                <option value="" disabled>
-                  Select a campaign
-                </option>
-                <option value="la-restaurant">LA Restaurant Launch</option>
-                <option value="beauty-launch">Beauty Studio Opening</option>
+              <select defaultValue={selectedCampaign?.id || ""}>
+                {dashboard.campaigns.length ? (
+                  dashboard.campaigns.map(campaign => (
+                    <option value={campaign.id} key={campaign.id}>
+                      {campaign.name}
+                    </option>
+                  ))
+                ) : (
+                  <option value="">No campaigns yet</option>
+                )}
               </select>
             </label>
           </div>
 
-          <div className="empty-state">
-            <div className="empty-illustration" aria-hidden="true">
-              <div className="paper" />
-              <span className="spark spark-one" />
-              <span className="spark spark-two" />
+          {dashboard.openTasks.length ? (
+            <div className="task-list" aria-label="Open tasks">
+              {dashboard.openTasks.map(task => (
+                <article className="task-card" key={task.id}>
+                  <span>{task.type.replaceAll("_", " ").toLowerCase()}</span>
+                  <strong>{task.title}</strong>
+                  {task.description ? <p>{task.description}</p> : null}
+                  {task.campaign ? <small>{task.campaign.name}</small> : null}
+                </article>
+              ))}
             </div>
-            <strong>All clear. No pending tasks right now.</strong>
-            <p>Creator reviews, content approvals, and campaign follow-ups will appear here once a campaign is active.</p>
-          </div>
+          ) : (
+            <div className="empty-state">
+              <div className="empty-illustration" aria-hidden="true">
+                <div className="paper" />
+                <span className="spark spark-one" />
+                <span className="spark spark-two" />
+              </div>
+              <strong>All clear. No pending tasks right now.</strong>
+              <p>Creator reviews, content approvals, and campaign follow-ups will appear here once a campaign is active.</p>
+            </div>
+          )}
+        </section>
+
+        <section className="workspace-stats" aria-label="Workspace stats">
+          <article>
+            <strong>{dashboard.stats.activeCampaigns}</strong>
+            <span>Active campaigns</span>
+          </article>
+          <article>
+            <strong>{dashboard.stats.pendingCreatorLeads}</strong>
+            <span>Creators pending review</span>
+          </article>
+          <article>
+            <strong>{dashboard.stats.shortlists}</strong>
+            <span>Shortlists</span>
+          </article>
+          <article>
+            <strong>{dashboard.stats.matchRuns}</strong>
+            <span>Match runs</span>
+          </article>
         </section>
 
         <section className="support-panel" aria-labelledby="support-title">

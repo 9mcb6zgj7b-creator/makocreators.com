@@ -646,6 +646,75 @@ h2 {
   line-height: 1.6;
 }
 
+.task-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 14px;
+  margin-top: 28px;
+}
+
+.task-card {
+  display: grid;
+  gap: 8px;
+  min-height: 136px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #fbfcff;
+  padding: 18px;
+}
+
+.task-card span {
+  color: var(--blue);
+  font-size: 12px;
+  font-weight: 900;
+  text-transform: capitalize;
+}
+
+.task-card strong {
+  font-size: 16px;
+  font-weight: 900;
+}
+
+.task-card p,
+.task-card small {
+  color: #707887;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.task-card p {
+  margin: 0;
+}
+
+.workspace-stats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.workspace-stats article {
+  display: grid;
+  gap: 5px;
+  min-height: 94px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #ffffff;
+  box-shadow: var(--shadow);
+  padding: 18px;
+}
+
+.workspace-stats strong {
+  font-size: 28px;
+  line-height: 1;
+  font-weight: 900;
+}
+
+.workspace-stats span {
+  color: #6d7481;
+  font-size: 13px;
+  font-weight: 800;
+}
+
 .empty-illustration {
   position: relative;
   display: grid;
@@ -784,6 +853,34 @@ h2 {
   grid-template-columns: repeat(auto-fill, minmax(360px, 402px));
   gap: 22px;
   margin-top: 28px;
+}
+
+.campaign-empty-panel {
+  display: grid;
+  place-items: center;
+  align-content: center;
+  min-height: 420px;
+  margin-top: 28px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: #ffffff;
+  box-shadow: var(--shadow);
+  color: #383d48;
+  text-align: center;
+}
+
+.campaign-empty-panel strong {
+  margin-top: 16px;
+  font-size: 17px;
+  font-weight: 900;
+}
+
+.campaign-empty-panel p {
+  max-width: 440px;
+  margin: 8px 0 0;
+  color: #7b8494;
+  font-size: 14px;
+  line-height: 1.55;
 }
 
 .campaign-card {
@@ -1012,8 +1109,9 @@ h2 {
 
 .metric-card > span {
   color: #171923;
-  font-size: 24px;
+  font-size: 22px;
   font-weight: 900;
+  line-height: 1.25;
 }
 
 .performance-panel {
@@ -1604,6 +1702,10 @@ h2 {
     grid-template-columns: 1fr;
   }
 
+  .workspace-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .report-actions {
     justify-items: stretch;
   }
@@ -1645,5 +1747,11 @@ h2 {
 
   .prompt-card textarea {
     grid-column: auto;
+  }
+}
+
+@media (max-width: 460px) {
+  .workspace-stats {
+    grid-template-columns: 1fr;
   }
 }

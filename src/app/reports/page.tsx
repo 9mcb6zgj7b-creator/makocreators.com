@@ -1,11 +1,14 @@
 import { AppShell, Icon } from "@/components/app-shell";
 import { requirePageContext } from "@/lib/page-auth";
+import { getReportSummary } from "@/lib/workspace-data";
 
 export const dynamic = "force-dynamic";
 
 export default async function ReportsPage() {
   const { user, workspace, role } = await requirePageContext("/reports");
+  const summary = await getReportSummary(workspace.id);
   const firstName = user.name?.split(/[ @+]/)[0] || "there";
+  const selectedCampaign = summary.campaigns[0];
 
   return (
     <AppShell
@@ -33,8 +36,15 @@ export default async function ReportsPage() {
           <h2 id="report-filters-title">Select Campaign</h2>
           <div className="filter-row">
             <select aria-label="Campaign">
-              <option>Select a campaign</option>
-              <option>Los Angeles Restaurant Review Influencer Campaign</option>
+              {summary.campaigns.length ? (
+                summary.campaigns.map(campaign => (
+                  <option value={campaign.id} key={campaign.id}>
+                    {campaign.name}
+                  </option>
+                ))
+              ) : (
+                <option>No campaigns yet</option>
+              )}
             </select>
             <span>Period</span>
             <select aria-label="Period">
@@ -69,7 +79,7 @@ export default async function ReportsPage() {
             <article className="metric-card">
               <strong>Total Spend</strong>
               <p>Includes creator fees, platform fees, and applicable service fees.</p>
-              <span>-</span>
+              <span>{summary.publishedContentCount ? "Available after billing sync" : "-"}</span>
             </article>
             <article className="metric-card">
               <div>
@@ -79,7 +89,7 @@ export default async function ReportsPage() {
                 </button>
               </div>
               <p>Your budget determines how many creators Mako Creator can invite.</p>
-              <span>-</span>
+              <span>{formatBudget(summary.totalBudgetMin, summary.totalBudgetMax)}</span>
             </article>
           </div>
         </section>
@@ -104,7 +114,7 @@ export default async function ReportsPage() {
               <span className="chart-card" />
               <span className="donut-card" />
             </div>
-            <p>No data yet</p>
+            <p>{selectedCampaign ? "Performance data will appear after the campaign starts." : "No data yet"}</p>
           </div>
 
           <section className="published-section" aria-labelledby="published-title">
@@ -114,11 +124,24 @@ export default async function ReportsPage() {
                 <span className="media-doc" />
                 <span className="media-tile" />
               </div>
-              <p>No published content yet</p>
+              <p>{summary.publishedContentCount ? `${summary.publishedContentCount} published items` : "No published content yet"}</p>
             </div>
           </section>
         </section>
       </section>
     </AppShell>
   );
+}
+
+function formatBudget(min: number, max: number) {
+  if (!min && !max) return "-";
+  const formatter = new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+    maximumFractionDigits: 0,
+  });
+  if (min && max && min !== max) {
+    return `${formatter.format(min)} - ${formatter.format(max)}`;
+  }
+  return formatter.format(max || min);
 }
