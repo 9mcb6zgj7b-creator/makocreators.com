@@ -1,7 +1,7 @@
 "use client";
 
 import { usePathname } from "next/navigation";
-import { useState, type ReactNode } from "react";
+import { useRef, useState, type ReactNode } from "react";
 
 const SF = '-apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", Arial, sans-serif';
 
@@ -79,16 +79,29 @@ function MenuIcon({ open }: { open: boolean }) {
 
 function RoleMenu({ label, base }: { label: string; base: "login" | "signup" }) {
   const [open, setOpen] = useState(false);
+  const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const items = [
     { label: "Brand", href: `/${base}/brand` },
     { label: "Creator", href: `/${base}/creator` },
   ];
 
+  const showMenu = () => {
+    if (closeTimer.current) {
+      clearTimeout(closeTimer.current);
+      closeTimer.current = null;
+    }
+    setOpen(true);
+  };
+
+  const hideMenu = () => {
+    closeTimer.current = setTimeout(() => setOpen(false), 180);
+  };
+
   return (
     <div
       style={{ position: "relative" }}
-      onMouseEnter={() => setOpen(true)}
-      onMouseLeave={() => setOpen(false)}
+      onMouseEnter={showMenu}
+      onMouseLeave={hideMenu}
     >
       <button
         type="button"
@@ -114,6 +127,8 @@ function RoleMenu({ label, base }: { label: string; base: "login" | "signup" }) 
       </button>
       {open ? (
         <div
+          onMouseEnter={showMenu}
+          onMouseLeave={hideMenu}
           style={{
             position: "absolute",
             top: "calc(100% + 10px)",
@@ -127,6 +142,16 @@ function RoleMenu({ label, base }: { label: string; base: "login" | "signup" }) 
             zIndex: 200,
           }}
         >
+          <div
+            aria-hidden="true"
+            style={{
+              position: "absolute",
+              left: 0,
+              right: 0,
+              top: -14,
+              height: 14,
+            }}
+          />
           <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: "0.1em", color: "#bbb", paddingLeft: 12, marginBottom: 8, textTransform: "uppercase" }}>
             {label} as a
           </div>
