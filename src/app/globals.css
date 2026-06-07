@@ -1671,6 +1671,182 @@ h2 {
   background: #f7f7f8;
 }
 
+.campaign-intake {
+  min-height: 100vh;
+  background: #f7f7f8;
+  padding: 18px 24px 48px;
+}
+
+.campaign-intake-header {
+  display: flex;
+  align-items: center;
+  min-height: 40px;
+}
+
+.campaign-intake-back {
+  border: 0;
+  background: transparent;
+  color: #454b56;
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.campaign-intake-shell {
+  display: grid;
+  gap: 22px;
+  width: min(720px, calc(100vw - 48px));
+  margin: 120px auto 0;
+}
+
+.campaign-intake-mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 52px;
+  height: 52px;
+  border-radius: 14px;
+  background: #060607;
+  color: #ffffff;
+}
+
+.campaign-intake-mark span {
+  font-size: 36px;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.campaign-intake-copy {
+  display: grid;
+  gap: 10px;
+}
+
+.campaign-intake-copy h1 {
+  max-width: 920px;
+  margin: 0;
+  color: #101216;
+  font-size: clamp(36px, 4vw, 48px);
+  line-height: 1.14;
+}
+
+.campaign-intake-copy p {
+  max-width: 660px;
+  margin: 0;
+  color: #737987;
+  font-size: 17px;
+  line-height: 1.65;
+}
+
+.campaign-intake-panel {
+  display: grid;
+  gap: 14px;
+  border: 1px solid #e2e5eb;
+  border-radius: 18px;
+  background: #ffffff;
+  box-shadow: 0 12px 30px rgba(16, 18, 22, 0.06);
+  padding: 18px;
+}
+
+.campaign-intake-textarea {
+  display: grid;
+  gap: 10px;
+}
+
+.campaign-intake-textarea span {
+  color: #2f343c;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.campaign-intake-textarea textarea {
+  width: 100%;
+  min-height: 188px;
+  border: 1px solid #d8dbe2;
+  border-radius: 14px;
+  background: #ffffff;
+  color: #181b21;
+  outline: none;
+  padding: 18px;
+  font-size: 16px;
+  line-height: 1.65;
+  resize: vertical;
+}
+
+.campaign-intake-textarea textarea:focus {
+  border-color: #ff7a45;
+  box-shadow: 0 0 0 4px rgba(255, 90, 31, 0.1);
+}
+
+.campaign-intake-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.campaign-upload-button,
+.campaign-start-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 48px;
+  border-radius: 12px;
+  font-size: 15px;
+  font-weight: 900;
+}
+
+.campaign-upload-button {
+  min-width: 190px;
+  border: 1px solid #d8dbe2;
+  background: #ffffff;
+  color: #2a3039;
+}
+
+.campaign-start-button {
+  min-width: 120px;
+  border: 0;
+  background: #111318;
+  color: #ffffff;
+  padding: 0 22px;
+}
+
+.campaign-start-button:disabled {
+  background: #f1f2f4;
+  color: #a4a9b2;
+}
+
+.campaign-manual-entry {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  min-height: 74px;
+  border: 1px solid #e2e5eb;
+  border-radius: 18px;
+  background: #ffffff;
+  box-shadow: 0 12px 30px rgba(16, 18, 22, 0.05);
+  color: #1a1d23;
+  padding: 0 18px;
+  text-align: left;
+}
+
+.campaign-manual-entry span {
+  font-size: 18px;
+  font-weight: 800;
+  line-height: 1.4;
+}
+
+.campaign-manual-entry strong {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border: 1px solid #d9dde4;
+  border-radius: 12px;
+  color: #616978;
+  font-size: 22px;
+}
+
 .campaign-wizard-header {
   position: sticky;
   top: 0;
@@ -2154,6 +2330,11 @@ h2 {
   .product-step-grid {
     grid-template-columns: 1fr;
   }
+
+  .campaign-intake-shell {
+    width: min(100%, 720px);
+    margin-top: 82px;
+  }
 }
 
 @media (max-width: 720px) {
@@ -2315,6 +2496,53 @@ h2 {
 
   .campaign-wizard-header {
     gap: 12px;
+  }
+
+  .campaign-intake {
+    padding: 14px 14px 40px;
+  }
+
+  .campaign-intake-shell {
+    width: 100%;
+    margin-top: 52px;
+    gap: 18px;
+  }
+
+  .campaign-intake-copy h1 {
+    font-size: 30px;
+  }
+
+  .campaign-intake-copy p {
+    font-size: 15px;
+  }
+
+  .campaign-intake-panel {
+    padding: 14px;
+  }
+
+  .campaign-intake-textarea textarea {
+    min-height: 160px;
+    padding: 14px;
+    font-size: 15px;
+  }
+
+  .campaign-intake-actions {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .campaign-upload-button,
+  .campaign-start-button {
+    width: 100%;
+  }
+
+  .campaign-manual-entry {
+    min-height: 68px;
+    padding: 14px;
+  }
+
+  .campaign-manual-entry span {
+    font-size: 16px;
   }
 
   .wizard-brand strong {

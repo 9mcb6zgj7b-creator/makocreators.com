@@ -12,27 +12,24 @@ const majorSteps = [
 const contentSteps = [
   {
     eyebrow: "3.1",
-    title: "Paste or upload your content brief",
-    description: "Add an existing creator brief, product link, campaign notes, or upload a file. We will structure it for creators.",
-  },
-  {
-    eyebrow: "3.2",
     title: "Campaign information",
     description: "Tell creators what this campaign is and what outcome you want.",
   },
   {
-    eyebrow: "3.3",
+    eyebrow: "3.2",
     title: "Product or service information",
     description: "Give creators the context they need to understand what they are promoting.",
   },
   {
-    eyebrow: "3.4",
+    eyebrow: "3.3",
     title: "Content requirements",
     description: "Set deliverables, talking points, references, and anything creators should avoid.",
   },
 ];
 
 export function CampaignWizard() {
+  const [mode, setMode] = useState<"intro" | "wizard">("intro");
+  const [sourceBrief, setSourceBrief] = useState("");
   const [activeStep, setActiveStep] = useState(0);
   const [campaignName, setCampaignName] = useState("Los Angeles Restaurant Review Influencer Campaign");
   const [goal, setGoal] = useState("Increase brand exposure and attract customers for Los Angeles restaurants");
@@ -45,11 +42,72 @@ export function CampaignWizard() {
   }
 
   function goBack() {
-    if (activeStep === 0) {
+    if (mode === "intro") {
       window.location.assign("/campaigns");
       return;
     }
+    if (activeStep === 0) {
+      setMode("intro");
+      return;
+    }
     setActiveStep(step => Math.max(step - 1, 0));
+  }
+
+  function enterWizard() {
+    setMode("wizard");
+    setActiveStep(0);
+  }
+
+  if (mode === "intro") {
+    return (
+      <main className="campaign-intake">
+        <header className="campaign-intake-header">
+          <button type="button" className="campaign-intake-back" onClick={goBack}>
+            Back
+          </button>
+        </header>
+
+        <section className="campaign-intake-shell">
+          <div className="campaign-intake-mark" aria-hidden="true">
+            <span>m</span>
+          </div>
+
+          <div className="campaign-intake-copy">
+            <h1>Paste your product link or campaign brief, and we will generate creator strategy and production guidance for review.</h1>
+            <p>
+              Start with what you already have. A product URL, offer details, launch notes, or a rough brief is enough for us to structure the next steps.
+            </p>
+          </div>
+
+          <section className="campaign-intake-panel">
+            <label className="campaign-intake-textarea" htmlFor="campaign-source-brief">
+              <span>Product link, campaign notes, or brief</span>
+              <textarea
+                id="campaign-source-brief"
+                rows={6}
+                value={sourceBrief}
+                onChange={event => setSourceBrief(event.target.value)}
+                placeholder="Paste your product URL, campaign goal, launch details, or creator brief here..."
+              />
+            </label>
+
+            <div className="campaign-intake-actions">
+              <button type="button" className="campaign-upload-button">
+                Upload activity brief
+              </button>
+              <button type="button" className="campaign-start-button" disabled={!sourceBrief.trim()} onClick={enterWizard}>
+                Start
+              </button>
+            </div>
+          </section>
+
+          <button type="button" className="campaign-manual-entry" onClick={enterWizard}>
+            <span>No product link or brief yet? Set it up step by step.</span>
+            <strong aria-hidden="true">→</strong>
+          </button>
+        </section>
+      </main>
+    );
   }
 
   return (
@@ -92,43 +150,24 @@ export function CampaignWizard() {
           </div>
 
           <div className="wizard-step-content">
-            {activeStep === 0 ? <BriefStep /> : null}
-            {activeStep === 1 ? (
+            {activeStep === 0 ? (
               <CampaignInfoStep campaignName={campaignName} goal={goal} onCampaignName={setCampaignName} onGoal={setGoal} />
             ) : null}
-            {activeStep === 2 ? <ProductInfoStep productName={productName} onProductName={setProductName} /> : null}
-            {activeStep === 3 ? <ContentRequirementsStep /> : null}
+            {activeStep === 1 ? <ProductInfoStep productName={productName} onProductName={setProductName} /> : null}
+            {activeStep === 2 ? <ContentRequirementsStep /> : null}
           </div>
         </section>
       </section>
 
       <footer className="wizard-footer">
         <button type="button" onClick={goBack}>
-          {activeStep === 0 ? "Back to Campaigns" : "Back"}
+          {activeStep === 0 ? "Back" : "Back"}
         </button>
         <button type="button" onClick={goNext} disabled={activeStep === contentSteps.length - 1}>
           {activeStep === contentSteps.length - 1 ? "Ready for Budget" : "Next"}
         </button>
       </footer>
     </main>
-  );
-}
-
-function BriefStep() {
-  return (
-    <div className="brief-step">
-      <label className="wizard-field">
-        <span>Brief text, product link, or campaign notes</span>
-        <textarea rows={7} placeholder="Paste your creator brief, product URL, campaign goal, offer details, or content notes..." />
-      </label>
-      <div className="brief-upload" role="button" tabIndex={0}>
-        <span>Click to upload or drag files here</span>
-        <strong>PDF, DOCX, PPT</strong>
-      </div>
-      <button className="brief-generate" type="button" disabled>
-        Generate structured brief
-      </button>
-    </div>
   );
 }
 
