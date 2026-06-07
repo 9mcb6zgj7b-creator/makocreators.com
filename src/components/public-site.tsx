@@ -179,6 +179,8 @@ function RoleMenu({ label, base }: { label: string; base: "login" | "signup" }) 
             <a
               key={item.href}
               href={item.href}
+              target="_blank"
+              rel="noopener noreferrer"
               style={{
                 display: "flex",
                 alignItems: "center",
