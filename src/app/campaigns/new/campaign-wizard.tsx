@@ -27,15 +27,19 @@ const contentSteps = [
   },
 ];
 
+const businessOptions = ["Restaurant", "Barbershop", "Spa", "Manicure", "Others"];
+
 export function CampaignWizard() {
   const [mode, setMode] = useState<"intro" | "wizard">("intro");
-  const [sourceBrief, setSourceBrief] = useState("");
+  const [businessType, setBusinessType] = useState("Restaurant");
+  const [customBusinessType, setCustomBusinessType] = useState("");
   const [activeStep, setActiveStep] = useState(0);
   const [campaignName, setCampaignName] = useState("Los Angeles Restaurant Review Influencer Campaign");
   const [goal, setGoal] = useState("Increase brand exposure and attract customers for Los Angeles restaurants");
   const [productName, setProductName] = useState("Los Angeles Restaurant Review Influencer Campaign");
   const progress = useMemo(() => `${activeStep + 1} / ${contentSteps.length}`, [activeStep]);
   const current = contentSteps[activeStep];
+  const resolvedBusinessType = businessType === "Others" ? customBusinessType.trim() : businessType;
 
   function goNext() {
     setActiveStep(step => Math.min(step + 1, contentSteps.length - 1));
@@ -54,6 +58,10 @@ export function CampaignWizard() {
   }
 
   function enterWizard() {
+    const businessLabel = resolvedBusinessType || "Local service";
+    setCampaignName(`${businessLabel} Creator Campaign`);
+    setProductName(businessLabel);
+    setGoal(`Increase visibility and attract more qualified local customers for this ${businessLabel.toLowerCase()} business.`);
     setMode("wizard");
     setActiveStep(0);
   }
@@ -68,43 +76,68 @@ export function CampaignWizard() {
         </header>
 
         <section className="campaign-intake-shell">
-          <div className="campaign-intake-mark" aria-hidden="true">
-            <span>m</span>
+          <div className="campaign-chat-thread" aria-label="Campaign setup conversation">
+            <article className="campaign-message assistant">
+              <div className="campaign-message-avatar" aria-hidden="true">
+                <span>m</span>
+              </div>
+              <div className="campaign-message-bubble">
+                <p className="campaign-message-label">Mako Creator</p>
+                <h1>What kind of business are you running?</h1>
+                <p>
+                  Let&apos;s keep this simple. Choose the closest business type and I&apos;ll shape the campaign flow around it.
+                </p>
+              </div>
+            </article>
+
+            {resolvedBusinessType ? (
+              <article className="campaign-message user">
+                <div className="campaign-message-bubble">
+                  <p>{resolvedBusinessType}</p>
+                </div>
+              </article>
+            ) : null}
+
+            <section className="campaign-choice-panel">
+              <p className="campaign-choice-heading">Choose one to begin</p>
+              <div className="campaign-choice-grid">
+                {businessOptions.map(option => (
+                  <button
+                    key={option}
+                    type="button"
+                    className={`campaign-choice-card ${businessType === option ? "selected" : ""}`}
+                    onClick={() => setBusinessType(option)}
+                  >
+                    <strong>{option}</strong>
+                    <span>
+                      {option === "Others"
+                        ? "Type your business category below."
+                        : `Build a campaign for your ${option.toLowerCase()} business.`}
+                    </span>
+                  </button>
+                ))}
+              </div>
+
+              {businessType === "Others" ? (
+                <label className="campaign-other-field" htmlFor="custom-business-type">
+                  <span>Tell us your business type</span>
+                  <input
+                    id="custom-business-type"
+                    value={customBusinessType}
+                    onChange={event => setCustomBusinessType(event.target.value)}
+                    placeholder="Example: roofing, dental clinic, med spa, pet grooming..."
+                  />
+                </label>
+              ) : null}
+
+              <div className="campaign-intake-actions">
+                <p>I&apos;ll use this to tailor the next questions and creator recommendations.</p>
+                <button type="button" className="campaign-start-button" disabled={!resolvedBusinessType} onClick={enterWizard}>
+                  Continue
+                </button>
+              </div>
+            </section>
           </div>
-
-          <div className="campaign-intake-copy">
-            <h1>Paste your product link or campaign brief, and we will generate creator strategy and production guidance for review.</h1>
-            <p>
-              Start with what you already have. A product URL, offer details, launch notes, or a rough brief is enough for us to structure the next steps.
-            </p>
-          </div>
-
-          <section className="campaign-intake-panel">
-            <label className="campaign-intake-textarea" htmlFor="campaign-source-brief">
-              <span>Product link, campaign notes, or brief</span>
-              <textarea
-                id="campaign-source-brief"
-                rows={6}
-                value={sourceBrief}
-                onChange={event => setSourceBrief(event.target.value)}
-                placeholder="Paste your product URL, campaign goal, launch details, or creator brief here..."
-              />
-            </label>
-
-            <div className="campaign-intake-actions">
-              <button type="button" className="campaign-upload-button">
-                Upload activity brief
-              </button>
-              <button type="button" className="campaign-start-button" disabled={!sourceBrief.trim()} onClick={enterWizard}>
-                Start
-              </button>
-            </div>
-          </section>
-
-          <button type="button" className="campaign-manual-entry" onClick={enterWizard}>
-            <span>No product link or brief yet? Set it up step by step.</span>
-            <strong aria-hidden="true">→</strong>
-          </button>
         </section>
       </main>
     );
@@ -161,7 +194,7 @@ export function CampaignWizard() {
 
       <footer className="wizard-footer">
         <button type="button" onClick={goBack}>
-          {activeStep === 0 ? "Back" : "Back"}
+          Back
         </button>
         <button type="button" onClick={goNext} disabled={activeStep === contentSteps.length - 1}>
           {activeStep === contentSteps.length - 1 ? "Ready for Budget" : "Next"}
