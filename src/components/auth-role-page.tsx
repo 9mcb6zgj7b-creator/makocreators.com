@@ -98,6 +98,28 @@ export function AuthRolePage({ mode, role, nextPath = "/dashboard" }: { mode: Mo
     }
   }
 
+  async function continueWithGoogle() {
+    setError("");
+    setStatus("Connecting with Google...");
+    setIsLoading(true);
+
+    try {
+      const res = await fetch("/api/auth/google-preview", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ role }),
+      });
+      const data = (await res.json()) as ApiResponse;
+      if (!res.ok) throw new Error(formatApiError(data.error));
+      window.location.assign(nextPath);
+    } catch (caught) {
+      setStatus("");
+      setError(caught instanceof Error ? caught.message : "Google sign-in failed.");
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
   return (
     <main style={{ minHeight: "100vh", background: "#faf8f4", fontFamily: SF, display: "flex" }}>
       <section className="auth-marketing-panel">
@@ -200,8 +222,8 @@ export function AuthRolePage({ mode, role, nextPath = "/dashboard" }: { mode: Mo
           </p>
 
           <div style={{ display: "grid", gap: 10, marginBottom: 20 }}>
-            <ProviderButton provider="TikTok" onClick={() => setStatus("TikTok sign-in will be connected after the official OAuth setup.")} />
-            <ProviderButton provider="Google" onClick={() => setStatus("Google sign-in will be connected after the official OAuth setup.")} />
+            <ProviderButton provider="Google" disabled={isLoading} onClick={continueWithGoogle} />
+            <ProviderButton provider="TikTok" disabled={isLoading} onClick={() => setStatus("TikTok sign-in will be connected after the official OAuth setup.")} />
           </div>
 
           <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20 }}>
@@ -323,11 +345,12 @@ function TextField({
   );
 }
 
-function ProviderButton({ provider, onClick }: { provider: "TikTok" | "Google"; onClick: () => void }) {
+function ProviderButton({ provider, disabled = false, onClick }: { provider: "TikTok" | "Google"; disabled?: boolean; onClick: () => void }) {
   const isTikTok = provider === "TikTok";
   return (
     <button
       type="button"
+      disabled={disabled}
       onClick={onClick}
       style={{
         width: "100%",
@@ -343,7 +366,8 @@ function ProviderButton({ provider, onClick }: { provider: "TikTok" | "Google"; 
         fontSize: 14,
         fontWeight: 600,
         color: isTikTok ? "#fff" : "#1a1a1a",
-        cursor: "pointer",
+        cursor: disabled ? "not-allowed" : "pointer",
+        opacity: disabled ? 0.68 : 1,
         boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
       }}
     >

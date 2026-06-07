@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { prisma } from "@/lib/db";
 
 export const SESSION_COOKIE = "maco_session";
+export const PREVIEW_SESSION_COOKIE = "maco_preview_session";
 const SESSION_DAYS = 30;
 const LOGIN_CODE_MINUTES = 10;
 
@@ -105,7 +106,74 @@ export async function verifyLoginChallenge(input: string, code: string, profile?
   return { user, workspace, token };
 }
 
+export async function createGooglePreviewSession(role: "brand" | "creator") {
+  const email = `google-${role}@preview.makocreators.local`;
+  const name = role === "creator" ? "Google Creator User" : "Google Brand User";
+
+  if (!process.env.DATABASE_URL) {
+    return {
+      preview: true,
+      role,
+      user: {
+        id: `preview-google-${role}`,
+        email,
+        phone: null,
+        name,
+        imageUrl: null,
+      },
+      workspace: {
+        id: `preview-workspace-${role}`,
+        name: role === "creator" ? "Google Creator Workspace" : "Google Brand Workspace",
+        slug: `google-${role}-workspace`,
+      },
+      token: role,
+    };
+  }
+
+  const user = await prisma.user.upsert({
+    where: { email },
+    update: { name },
+    create: {
+      email,
+      name,
+    },
+  });
+
+  const workspace = await ensureDefaultWorkspace(user.id, email);
+  const token = randomBytes(32).toString("base64url");
+  await prisma.session.create({
+    data: {
+      userId: user.id,
+      tokenHash: hashToken(token),
+      expiresAt: new Date(Date.now() + SESSION_DAYS * 24 * 60 * 60 * 1000),
+    },
+  });
+
+  return { preview: false, role, user, workspace, token };
+}
+
 export async function getRequestContext() {
+  if (!process.env.DATABASE_URL) {
+    const previewRole = cookies().get(PREVIEW_SESSION_COOKIE)?.value;
+    if (previewRole === "brand" || previewRole === "creator") {
+      return {
+        user: {
+          id: `preview-google-${previewRole}`,
+          email: `google-${previewRole}@preview.makocreators.local`,
+          phone: null,
+          name: previewRole === "creator" ? "Google Creator User" : "Google Brand User",
+          imageUrl: null,
+        },
+        workspace: {
+          id: `preview-workspace-${previewRole}`,
+          name: previewRole === "creator" ? "Google Creator Workspace" : "Google Brand Workspace",
+          slug: `google-${previewRole}-workspace`,
+        },
+        role: "OWNER",
+      };
+    }
+  }
+
   const token = cookies().get(SESSION_COOKIE)?.value;
   if (!token) throw new AuthError("Please sign in first.");
 
@@ -151,6 +219,8 @@ export function getSessionCookieOptions() {
 }
 
 export async function logoutCurrentSession() {
+  if (!process.env.DATABASE_URL) return;
+
   const token = cookies().get(SESSION_COOKIE)?.value;
   if (!token) return;
   await prisma.session.deleteMany({ where: { tokenHash: hashToken(token) } });
