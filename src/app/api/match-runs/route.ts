@@ -30,7 +30,7 @@ export async function GET() {
     });
     return ok({ runs });
   } catch (error) {
-    return apiError(error, "读取匹配任务失败");
+    return apiError(error, "Failed to load match runs.");
   }
 }
 
@@ -56,6 +56,6 @@ export async function POST(req: NextRequest) {
 
     return created({ run });
   } catch (error) {
-    return apiError(error, "创建匹配任务失败");
+    return apiError(error, "Failed to create match run.");
   }
 }

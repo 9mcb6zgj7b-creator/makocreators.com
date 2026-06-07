@@ -1,4 +1,4 @@
-# MACO Creators
+# Mako Creator
 
 Front-end project folder for makocreators.com.
 

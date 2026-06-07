@@ -11,6 +11,6 @@ export async function POST() {
     res.cookies.set(SESSION_COOKIE, "", { ...getSessionCookieOptions(), maxAge: 0 });
     return res;
   } catch (error) {
-    return apiError(error, "退出登录失败");
+    return apiError(error, "Failed to sign out.");
   }
 }

@@ -24,7 +24,7 @@ export async function GET() {
     });
     return ok({ campaigns });
   } catch (error) {
-    return apiError(error, "读取活动失败");
+    return apiError(error, "Failed to load campaigns.");
   }
 }
 
@@ -45,6 +45,6 @@ export async function POST(req: NextRequest) {
     });
     return created({ campaign });
   } catch (error) {
-    return apiError(error, "创建活动失败");
+    return apiError(error, "Failed to create campaign.");
   }
 }

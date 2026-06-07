@@ -36,7 +36,7 @@ export async function GET(_req: NextRequest, { params }: Params) {
     }
     return ok({ task });
   } catch (error) {
-    return apiError(error, "读取待办事项失败");
+    return apiError(error, "Failed to load task.");
   }
 }
 
@@ -71,6 +71,6 @@ export async function PATCH(req: NextRequest, { params }: Params) {
 
     return ok({ task });
   } catch (error) {
-    return apiError(error, "更新待办事项失败");
+    return apiError(error, "Failed to update task.");
   }
 }

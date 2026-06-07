@@ -19,10 +19,10 @@ export async function POST(req: NextRequest) {
     const form = await req.formData();
     const file = form.get("file");
     if (!(file instanceof File)) {
-      throw new Error("请上传 Excel 文件");
+      throw new Error("Please upload an Excel or CSV file.");
     }
     if (file.size > MAX_FILE_BYTES) {
-      throw new Error("文件太大，请控制在 8MB 以内");
+      throw new Error("The file is too large. Please keep it under 8 MB.");
     }
 
     const buffer = Buffer.from(await file.arrayBuffer());
@@ -34,7 +34,7 @@ export async function POST(req: NextRequest) {
     const validInputs = dedupeCreatorLeadInputs(candidates.filter(input => input !== null));
 
     if (!validInputs.length) {
-      throw new Error("没有找到可导入的达人链接，请确认表格里有“链接”或“主页链接”列");
+      throw new Error("No importable creator links were found. Please include a link or profile URL column.");
     }
 
     const leads = await prisma.$transaction(
@@ -95,7 +95,7 @@ export async function POST(req: NextRequest) {
       leads,
     });
   } catch (error) {
-    return apiError(error, "导入达人表格失败");
+    return apiError(error, "Failed to import creator leads.");
   }
 }
 
@@ -104,7 +104,7 @@ async function parseWorkbook(buffer: Buffer) {
   await workbook.xlsx.load(buffer as unknown as ExcelJS.Buffer);
   const worksheet = workbook.worksheets[0];
   if (!worksheet) {
-    throw new Error("Excel 文件里没有可读取的表格");
+    throw new Error("No readable worksheet was found in the Excel file.");
   }
 
   const headerRow = worksheet.getRow(1);

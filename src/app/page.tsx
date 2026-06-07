@@ -2,7 +2,7 @@ import { AppShell, Icon } from "@/components/app-shell";
 
 const supportItems = [
   {
-    title: "Contact MACO Creators Support",
+    title: "Contact Mako Creator Support",
     description: "Get help from our creator campaign support team.",
   },
   {

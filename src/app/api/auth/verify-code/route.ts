@@ -31,6 +31,6 @@ export async function POST(req: NextRequest) {
     res.cookies.set(SESSION_COOKIE, session.token, getSessionCookieOptions());
     return res;
   } catch (error) {
-    return apiError(error, "登录失败");
+    return apiError(error, "Sign-in failed.");
   }
 }

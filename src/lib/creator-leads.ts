@@ -20,7 +20,7 @@ export const creatorLeadLinksSchema = z.object({
   url: z.string().url().optional(),
   notes: z.string().max(4000).optional(),
 }).refine(value => value.url || value.urls?.length, {
-  message: "请至少提供一个达人主页或视频链接",
+  message: "Please provide at least one creator profile or video link.",
 });
 
 export type CreatorLeadInput = {

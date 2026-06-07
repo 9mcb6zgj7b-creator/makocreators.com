@@ -20,6 +20,6 @@ export async function POST(req: NextRequest) {
       devCode: process.env.AUTH_SHOW_DEV_CODE === "true" ? challenge.code : undefined,
     });
   } catch (error) {
-    return apiError(error, "无法发送验证码");
+    return apiError(error, "Failed to send the verification code.");
   }
 }

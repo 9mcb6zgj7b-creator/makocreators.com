@@ -33,7 +33,7 @@ export async function GET(req: NextRequest) {
     });
     return ok({ leads });
   } catch (error) {
-    return apiError(error, "读取达人资料失败");
+    return apiError(error, "Failed to load creator leads.");
   }
 }
 
@@ -87,6 +87,6 @@ export async function POST(req: NextRequest) {
 
     return created({ leads, count: leads.length });
   } catch (error) {
-    return apiError(error, "提交达人链接失败");
+    return apiError(error, "Failed to submit creator links.");
   }
 }

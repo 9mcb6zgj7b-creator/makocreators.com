@@ -36,7 +36,7 @@ export function normalizeIdentifier(input: string): NormalizedIdentifier | null 
 export async function createLoginChallenge(input: string) {
   const normalized = normalizeIdentifier(input);
   if (!normalized) {
-    throw new Error("请输入有效的邮箱或手机号");
+    throw new Error("Please enter a valid email address or phone number.");
   }
 
   const code = randomInt(100000, 1_000_000).toString();
@@ -60,7 +60,7 @@ export async function createLoginChallenge(input: string) {
 export async function verifyLoginChallenge(input: string, code: string) {
   const normalized = normalizeIdentifier(input);
   if (!normalized) {
-    throw new Error("请输入有效的邮箱或手机号");
+    throw new Error("Please enter a valid email address or phone number.");
   }
 
   const challenge = await prisma.loginChallenge.findFirst({
@@ -73,7 +73,7 @@ export async function verifyLoginChallenge(input: string, code: string) {
   });
 
   if (!challenge || challenge.codeHash !== hashToken(code.trim())) {
-    throw new Error("验证码不正确或已过期");
+    throw new Error("The verification code is incorrect or expired.");
   }
 
   const user = await prisma.user.upsert({
@@ -107,7 +107,7 @@ export async function verifyLoginChallenge(input: string, code: string) {
 
 export async function getRequestContext() {
   const token = cookies().get(SESSION_COOKIE)?.value;
-  if (!token) throw new AuthError("请先登录");
+  if (!token) throw new AuthError("Please sign in first.");
 
   const session = await prisma.session.findUnique({
     where: { tokenHash: hashToken(token) },
@@ -125,12 +125,12 @@ export async function getRequestContext() {
   });
 
   if (!session || session.expiresAt < new Date()) {
-    throw new AuthError("登录已过期");
+    throw new AuthError("Your session has expired.");
   }
 
   const membership = session.user.memberships[0];
   if (!membership) {
-    throw new AuthError("没有可用工作区");
+    throw new AuthError("No workspace is available for this account.");
   }
 
   return {

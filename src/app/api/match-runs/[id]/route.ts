@@ -21,6 +21,6 @@ export async function GET(_: NextRequest, { params }: { params: { id: string } }
     if (!run) return ok({ error: "Not found" }, { status: 404 });
     return ok({ run });
   } catch (error) {
-    return apiError(error, "读取匹配任务失败");
+    return apiError(error, "Failed to load match run.");
   }
 }

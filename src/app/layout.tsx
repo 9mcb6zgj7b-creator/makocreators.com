@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "MACO Creators",
+  title: "Mako Creator",
   description: "Creator matching workspace for local business campaigns",
 };
 

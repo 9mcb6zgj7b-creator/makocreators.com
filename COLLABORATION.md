@@ -1,4 +1,4 @@
-# MACO Creators Collaboration Rules
+# Mako Creator Collaboration Rules
 
 Read this file before writing code in this repository.
 
@@ -7,7 +7,7 @@ This rule applies to both Claude and Codex. Every new coding session must begin 
 ## Project
 
 - Product: `makocreators.com`
-- Display name: `MACO Creators`
+- Display name: `Mako Creator`
 - Purpose: creator matching, creator personas, campaign briefs, shortlists, and outreach workflows for businesses.
 - Primary project workspace: `/Users/shengliu/Desktop/makocreators-com`
 

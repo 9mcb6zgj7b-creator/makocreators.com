@@ -24,7 +24,7 @@ export async function GET() {
     });
     return ok({ personas });
   } catch (error) {
-    return apiError(error, "读取达人画像失败");
+    return apiError(error, "Failed to load creator personas.");
   }
 }
 
@@ -55,7 +55,7 @@ export async function POST(req: NextRequest) {
 
     return created({ persona });
   } catch (error) {
-    return apiError(error, "创建达人画像失败");
+    return apiError(error, "Failed to create creator persona.");
   }
 }
 

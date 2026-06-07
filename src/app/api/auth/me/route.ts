@@ -21,6 +21,6 @@ export async function GET() {
       role,
     });
   } catch (error) {
-    return apiError(error, "读取当前用户失败");
+    return apiError(error, "Failed to load the current user.");
   }
 }

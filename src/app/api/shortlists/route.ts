@@ -29,7 +29,7 @@ export async function GET() {
     });
     return ok({ shortlists });
   } catch (error) {
-    return apiError(error, "读取候选名单失败");
+    return apiError(error, "Failed to load shortlists.");
   }
 }
 
@@ -47,6 +47,6 @@ export async function POST(req: NextRequest) {
     });
     return created({ shortlist });
   } catch (error) {
-    return apiError(error, "创建候选名单失败");
+    return apiError(error, "Failed to create shortlist.");
   }
 }

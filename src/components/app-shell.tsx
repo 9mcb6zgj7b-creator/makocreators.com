@@ -13,9 +13,9 @@ export function AppShell({ activeNav, children }: { activeNav: NavKey; children:
   return (
     <main className="app-shell">
       <header className="topbar">
-        <a className="brand" href="/" aria-label="MACO Creators">
+        <a className="brand" href="/" aria-label="Mako Creator">
           <span className="brand-mark">m</span>
-          <span>MACO Creators</span>
+          <span>Mako Creator</span>
         </a>
 
         <nav className="main-nav" aria-label="Main navigation">

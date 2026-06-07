@@ -23,7 +23,7 @@ export async function GET() {
     });
     return ok({ drafts });
   } catch (error) {
-    return apiError(error, "读取邀约草稿失败");
+    return apiError(error, "Failed to load outreach drafts.");
   }
 }
 
@@ -43,6 +43,6 @@ export async function POST(req: NextRequest) {
     });
     return created({ draft });
   } catch (error) {
-    return apiError(error, "创建邀约草稿失败");
+    return apiError(error, "Failed to create outreach draft.");
   }
 }

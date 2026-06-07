@@ -58,6 +58,6 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
 
     return created({ item });
   } catch (error) {
-    return apiError(error, "加入候选名单失败");
+    return apiError(error, "Failed to add creator to shortlist.");
   }
 }

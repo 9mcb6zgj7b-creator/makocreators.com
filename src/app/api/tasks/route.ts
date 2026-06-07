@@ -46,7 +46,7 @@ export async function GET(req: NextRequest) {
     });
     return ok({ tasks });
   } catch (error) {
-    return apiError(error, "读取待办事项失败");
+    return apiError(error, "Failed to load tasks.");
   }
 }
 
@@ -61,7 +61,7 @@ export async function POST(req: NextRequest) {
         select: { id: true },
       });
       if (!campaign) {
-        throw new Error("营销计划不存在");
+        throw new Error("Campaign not found.");
       }
     }
 
@@ -86,6 +86,6 @@ export async function POST(req: NextRequest) {
 
     return created({ task });
   } catch (error) {
-    return apiError(error, "创建待办事项失败");
+    return apiError(error, "Failed to create task.");
   }
 }

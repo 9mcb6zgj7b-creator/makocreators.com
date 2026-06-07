@@ -10,7 +10,7 @@ export function created<T>(data: T) {
   return NextResponse.json(data, { status: 201 });
 }
 
-export function apiError(error: unknown, fallback = "请求失败") {
+export function apiError(error: unknown, fallback = "Request failed.") {
   if (error instanceof AuthError) {
     return NextResponse.json({ error: error.message }, { status: error.status });
   }

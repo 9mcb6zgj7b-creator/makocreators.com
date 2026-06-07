@@ -2,7 +2,7 @@
 
 Production domain: `makocreators.com`
 
-Display name: `MACO Creators`
+Display name: `Mako Creator`
 
 ## Current Status
 
@@ -58,7 +58,7 @@ Required when features are connected:
 Before production launch:
 
 1. Confirm production domain is `makocreators.com`.
-2. Confirm display name is `MACO Creators`.
+2. Confirm display name is `Mako Creator`.
 3. Scaffold the app framework.
 4. Add frontend pages from Claude.
 5. Add backend data models and auth from Codex.

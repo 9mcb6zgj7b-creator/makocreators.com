@@ -22,7 +22,7 @@ export async function GET(_: NextRequest, { params }: { params: { id: string } }
     if (!persona) return ok({ error: "Not found" }, { status: 404 });
     return ok({ persona });
   } catch (error) {
-    return apiError(error, "读取达人画像失败");
+    return apiError(error, "Failed to load creator persona.");
   }
 }
 
@@ -42,6 +42,6 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     });
     return ok({ persona });
   } catch (error) {
-    return apiError(error, "更新达人画像失败");
+    return apiError(error, "Failed to update creator persona.");
   }
 }

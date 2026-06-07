@@ -65,10 +65,10 @@ export async function GET() {
         role,
       },
       navigation: [
-        { key: "home", label: "主页", href: "/dashboard" },
-        { key: "creators", label: "达人库", href: "/creators" },
-        { key: "campaigns", label: "营销计划", href: "/campaigns" },
-        { key: "reports", label: "数据报告", href: "/reports" },
+        { key: "home", label: "Home", href: "/dashboard" },
+        { key: "creators", label: "Creators", href: "/creators" },
+        { key: "campaigns", label: "Campaigns", href: "/campaigns" },
+        { key: "reports", label: "Reports", href: "/reports" },
       ],
       campaigns,
       tasks: openTasks,
@@ -81,19 +81,19 @@ export async function GET() {
         matchRuns: matchRunCount,
       },
       support: {
-        title: "联系 MACO Creators 支持团队",
-        description: "您可享受我们的专业支持服务。",
+        title: "Contact Mako Creator Support",
+        description: "Get help from our creator campaign support team.",
         channels: [
-          { key: "chat", label: "在线客服", available: true },
-          { key: "email", label: "邮件支持", available: true },
+          { key: "chat", label: "Live Chat", available: true },
+          { key: "email", label: "Email Support", available: true },
         ],
       },
       emptyState: {
-        title: "太棒了！当前暂无待办事项",
-        actionLabel: "新建营销计划",
+        title: "All clear. No pending tasks right now.",
+        actionLabel: "New Campaign",
       },
     });
   } catch (error) {
-    return apiError(error, "读取首页数据失败");
+    return apiError(error, "Failed to load dashboard data.");
   }
 }
