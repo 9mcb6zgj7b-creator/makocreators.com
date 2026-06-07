@@ -77,12 +77,32 @@ function MenuIcon({ open }: { open: boolean }) {
   );
 }
 
+function BrandMenuIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+      <rect x="2" y="7" width="16" height="11" rx="2" stroke="currentColor" strokeWidth="1.6" />
+      <path d="M6 7V5a4 4 0 018 0v2" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+      <circle cx="10" cy="13" r="1.5" fill="currentColor" />
+    </svg>
+  );
+}
+
+function CreatorMenuIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+      <circle cx="10" cy="7" r="3" stroke="currentColor" strokeWidth="1.6" />
+      <path d="M4 17c0-3.314 2.686-6 6-6s6 2.686 6 6" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+      <path d="M14 3l1 1-5 5-2-2 5-5z" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
 function RoleMenu({ label, base }: { label: string; base: "login" | "signup" }) {
   const [open, setOpen] = useState(false);
   const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const items = [
-    { label: "Brand", href: `/${base}/brand` },
-    { label: "Creator", href: `/${base}/creator` },
+    { icon: <BrandMenuIcon />, label: "Brand", href: `/${base}/brand` },
+    { icon: <CreatorMenuIcon />, label: "Creator", href: `/${base}/creator` },
   ];
 
   const showMenu = () => {
@@ -171,6 +191,9 @@ function RoleMenu({ label, base }: { label: string; base: "login" | "signup" }) 
                 fontWeight: 600,
               }}
             >
+              <span style={{ color: "#888", display: "flex", flexShrink: 0 }}>
+                {item.icon}
+              </span>
               {item.label}
             </a>
           ))}
