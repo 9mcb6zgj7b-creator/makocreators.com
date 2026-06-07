@@ -168,8 +168,19 @@ a {
   padding: 36px 0 56px;
 }
 
+.reports-page {
+  display: grid;
+  gap: 24px;
+  width: min(1870px, calc(100vw - 14px));
+  margin: 0 auto;
+  padding: 36px 0 56px;
+}
+
 .welcome-row,
-.page-heading-row {
+.page-heading-row,
+.reports-hero,
+.report-panel-header,
+.performance-header {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
@@ -199,6 +210,13 @@ h2 {
 }
 
 .welcome-row p {
+  margin-bottom: 0;
+  color: var(--muted);
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.reports-hero p {
   margin-bottom: 0;
   color: var(--muted);
   font-size: 15px;
@@ -504,6 +522,356 @@ h2 {
   color: #141821;
 }
 
+.report-filters {
+  display: grid;
+  gap: 18px;
+}
+
+.filter-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.filter-row select {
+  width: 220px;
+  height: 40px;
+  border: 1px solid #d8dbe2;
+  border-radius: 7px;
+  background: #ffffff;
+  color: #a2a7b1;
+  padding: 0 12px;
+  outline: none;
+}
+
+.filter-row span {
+  color: #30343c;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.report-panel {
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+
+.budget-panel {
+  min-height: 352px;
+  padding: 28px 25px 24px;
+}
+
+.report-panel-header {
+  align-items: center;
+}
+
+.panel-icon-button,
+.edit-button,
+.info-banner button {
+  display: grid;
+  place-items: center;
+  border: 0;
+  background: transparent;
+  color: #2d333d;
+}
+
+.panel-icon-button {
+  width: 32px;
+  height: 32px;
+}
+
+.dot-grid {
+  width: 18px;
+  height: 18px;
+  background:
+    radial-gradient(circle, #ff8a5c 0 3px, transparent 3.5px) 0 0 / 9px 9px,
+    radial-gradient(circle, #ff8a5c 0 3px, transparent 3.5px) 0 0 / 9px 9px;
+}
+
+.info-banner {
+  display: grid;
+  grid-template-columns: 18px 1fr 24px;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  margin-top: 24px;
+  padding: 10px 14px;
+  border-radius: 6px;
+  background: #eaf3ff;
+  color: #586171;
+}
+
+.info-banner p {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.info-icon {
+  display: grid;
+  place-items: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
+  background: #3b82f6;
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.billing-link {
+  display: block;
+  margin: 24px 0 26px;
+  color: var(--orange);
+  text-align: right;
+  font-size: 14px;
+  font-weight: 900;
+}
+
+.budget-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 24px;
+}
+
+.metric-card {
+  min-height: 126px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 20px;
+}
+
+.metric-card > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.metric-card strong {
+  display: block;
+  font-size: 14px;
+  font-weight: 900;
+}
+
+.metric-card p {
+  margin: 7px 0 20px;
+  color: #818894;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.metric-card > span {
+  color: #171923;
+  font-size: 24px;
+  font-weight: 900;
+}
+
+.performance-panel {
+  min-height: 706px;
+  padding: 35px 33px 42px;
+}
+
+.performance-header {
+  align-items: center;
+}
+
+.report-actions {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.segment-control {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 8px;
+  background: #f4f6fa;
+  padding: 2px;
+}
+
+.segment-control button,
+.download-button {
+  min-height: 38px;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  background: transparent;
+  color: #596170;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.segment-control button {
+  padding: 0 14px;
+}
+
+.segment-control button.active,
+.download-button {
+  border-color: #d8dbe2;
+  background: #ffffff;
+  color: #20242c;
+}
+
+.download-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 15px;
+}
+
+.report-empty {
+  display: grid;
+  place-items: center;
+  min-height: 270px;
+  text-align: center;
+}
+
+.report-empty p {
+  margin: 12px 0 0;
+  color: #4f5664;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.empty-report-art,
+.empty-media-art {
+  position: relative;
+  width: 170px;
+  height: 130px;
+}
+
+.chart-card,
+.donut-card,
+.media-doc,
+.media-tile {
+  position: absolute;
+  display: block;
+  border-radius: 8px;
+  background: #f4f7fc;
+  box-shadow: 0 18px 30px rgba(116, 130, 155, 0.12);
+}
+
+.chart-card {
+  left: 58px;
+  top: 14px;
+  width: 108px;
+  height: 70px;
+}
+
+.chart-card::before {
+  content: "";
+  position: absolute;
+  left: 18px;
+  right: 16px;
+  top: 16px;
+  height: 4px;
+  border-radius: 999px;
+  background: #c9d2e1;
+  box-shadow: 0 22px 0 #d5ddeb;
+}
+
+.chart-card::after {
+  content: "";
+  position: absolute;
+  left: 28px;
+  bottom: 15px;
+  width: 8px;
+  height: 16px;
+  border-radius: 2px;
+  background: #a8b3c6;
+  box-shadow: 26px -7px 0 #a8b3c6, 52px -4px 0 #a8b3c6;
+}
+
+.donut-card {
+  left: 28px;
+  top: 58px;
+  width: 72px;
+  height: 64px;
+}
+
+.donut-card::before {
+  content: "";
+  position: absolute;
+  left: 14px;
+  top: 15px;
+  width: 28px;
+  height: 28px;
+  border: 7px solid #aab5c7;
+  border-right-color: #dce4ef;
+  border-radius: 999px;
+}
+
+.donut-card::after {
+  content: "";
+  position: absolute;
+  right: 12px;
+  top: 18px;
+  width: 20px;
+  height: 3px;
+  border-radius: 999px;
+  background: #cbd5e1;
+  box-shadow: 0 13px 0 #cbd5e1, 0 26px 0 #cbd5e1;
+}
+
+.published-section {
+  margin-top: 8px;
+}
+
+.published-section h2 {
+  margin-bottom: 34px;
+}
+
+.media-empty {
+  min-height: 240px;
+}
+
+.media-doc {
+  left: 50px;
+  top: 18px;
+  width: 94px;
+  height: 86px;
+}
+
+.media-doc::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 30px;
+  height: 30px;
+  background: #d5deeb;
+  clip-path: polygon(0 0, 100% 100%, 100% 0);
+}
+
+.media-tile {
+  left: 24px;
+  top: 64px;
+  width: 64px;
+  height: 56px;
+}
+
+.media-tile::before {
+  content: "";
+  position: absolute;
+  left: 14px;
+  bottom: 12px;
+  width: 34px;
+  height: 22px;
+  background: linear-gradient(135deg, transparent 48%, #a9b5c7 49% 64%, transparent 65%), linear-gradient(45deg, transparent 42%, #c4ccda 43% 62%, transparent 63%);
+}
+
+.media-tile::after {
+  content: "";
+  position: absolute;
+  left: 18px;
+  top: 15px;
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: #a9b5c7;
+}
+
 .icon {
   position: relative;
   display: inline-block;
@@ -691,6 +1059,70 @@ h2 {
   box-shadow: 6px 0 0 currentColor, 12px 0 0 currentColor;
 }
 
+.icon-close::before,
+.icon-close::after {
+  content: "";
+  position: absolute;
+  left: 3px;
+  top: 8px;
+  width: 12px;
+  height: 2px;
+  border-radius: 999px;
+  background: currentColor;
+}
+
+.icon-close::before {
+  transform: rotate(45deg);
+}
+
+.icon-close::after {
+  transform: rotate(-45deg);
+}
+
+.icon-edit::before {
+  content: "";
+  position: absolute;
+  left: 4px;
+  top: 9px;
+  width: 11px;
+  height: 3px;
+  border-radius: 2px;
+  background: currentColor;
+  transform: rotate(-45deg);
+}
+
+.icon-edit::after {
+  content: "";
+  position: absolute;
+  left: 3px;
+  bottom: 3px;
+  width: 11px;
+  height: 2px;
+  background: currentColor;
+}
+
+.icon-download::before {
+  content: "";
+  position: absolute;
+  left: 8px;
+  top: 3px;
+  width: 2px;
+  height: 9px;
+  background: currentColor;
+}
+
+.icon-download::after {
+  content: "";
+  position: absolute;
+  left: 5px;
+  top: 9px;
+  width: 8px;
+  height: 8px;
+  border-left: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  transform: rotate(-45deg);
+}
+
 @media (max-width: 980px) {
   .topbar {
     grid-template-columns: 1fr auto;
@@ -701,7 +1133,7 @@ h2 {
     grid-column: 1 / -1;
     order: 3;
     justify-content: flex-start;
-    gap: 8px;
+    gap: 4px;
     overflow-x: auto;
     padding-bottom: 12px;
     scrollbar-width: none;
@@ -712,7 +1144,8 @@ h2 {
   }
 
   .dashboard,
-  .campaigns-page {
+  .campaigns-page,
+  .reports-page {
     width: min(100% - 28px, 1500px);
   }
 }
@@ -729,14 +1162,14 @@ h2 {
 
   .nav-item {
     min-height: 40px;
-    gap: 6px;
-    padding: 0 9px;
-    font-size: 14px;
+    gap: 4px;
+    padding: 0 6px;
+    font-size: 13px;
   }
 
   .nav-item .icon {
-    width: 16px;
-    height: 16px;
+    width: 14px;
+    height: 14px;
   }
 
   .welcome-row,
@@ -781,6 +1214,34 @@ h2 {
 
   .campaign-grid {
     grid-template-columns: 1fr;
+  }
+
+  .reports-hero,
+  .filter-row,
+  .performance-header,
+  .report-actions {
+    display: grid;
+  }
+
+  .filter-row select,
+  .download-button {
+    width: 100%;
+  }
+
+  .budget-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .report-actions {
+    justify-items: stretch;
+  }
+
+  .segment-control {
+    width: 100%;
+  }
+
+  .segment-control button {
+    flex: 1;
   }
 
   .campaign-card-main {
