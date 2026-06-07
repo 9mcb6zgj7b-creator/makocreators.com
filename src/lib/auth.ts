@@ -57,7 +57,7 @@ export async function createLoginChallenge(input: string) {
   };
 }
 
-export async function verifyLoginChallenge(input: string, code: string) {
+export async function verifyLoginChallenge(input: string, code: string, profile?: { name?: string }) {
   const normalized = normalizeIdentifier(input);
   if (!normalized) {
     throw new Error("Please enter a valid email address or phone number.");
@@ -78,11 +78,11 @@ export async function verifyLoginChallenge(input: string, code: string) {
 
   const user = await prisma.user.upsert({
     where: normalized.email ? { email: normalized.email } : { phone: normalized.phone! },
-    update: {},
+    update: profile?.name ? { name: profile.name } : {},
     create: {
       email: normalized.email,
       phone: normalized.phone,
-      name: normalized.identifier,
+      name: profile?.name || normalized.identifier,
     },
   });
 

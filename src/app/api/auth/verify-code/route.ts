@@ -8,12 +8,14 @@ export const dynamic = "force-dynamic";
 const schema = z.object({
   identifier: z.string().min(3),
   code: z.string().min(4).max(12),
+  name: z.string().min(1).max(120).optional(),
+  role: z.enum(["brand", "creator"]).optional(),
 });
 
 export async function POST(req: NextRequest) {
   try {
     const body = schema.parse(await req.json());
-    const session = await verifyLoginChallenge(body.identifier, body.code);
+    const session = await verifyLoginChallenge(body.identifier, body.code, { name: body.name });
     const res = ok({
       ok: true,
       user: {

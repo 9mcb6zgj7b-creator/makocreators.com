@@ -6,7 +6,7 @@ export async function requirePageContext(nextPath: string) {
     return await getRequestContext();
   } catch (error) {
     if (error instanceof AuthError) {
-      redirect(`/login?next=${encodeURIComponent(nextPath)}`);
+      redirect(`/login/brand?next=${encodeURIComponent(nextPath)}`);
     }
     throw error;
   }
