@@ -3,9 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
-    "build": "prisma generate && next build",
-    "start": "next start",
+    "dev": "NEXT_DIST_DIR=.next-dev next dev",
+    "build": "NEXT_DIST_DIR=.next-build prisma generate && NEXT_DIST_DIR=.next-build next build",
+    "start": "NEXT_DIST_DIR=.next-build next start",
     "db:generate": "prisma generate",
     "db:push": "prisma db push",
     "db:migrate": "prisma migrate dev",
