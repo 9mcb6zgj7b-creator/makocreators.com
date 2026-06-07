@@ -13,9 +13,9 @@ This rule applies to both Claude and Codex. Every new coding session must begin 
 
 ## Ownership
 
-Claude owns the frontend.
+Claude owns the public-facing frontend.
 
-Codex owns the backend.
+Codex owns the backend and logged-in product experience.
 
 Do not edit the other agent's owned area unless the user explicitly asks, or unless the change is required to keep the app working. If a task crosses ownership boundaries, stop and explain the needed boundary crossing before editing.
 
@@ -25,7 +25,6 @@ Claude should focus on:
 
 - Landing pages
 - Public marketing pages
-- Logged-in frontend pages
 - React components
 - Layout, visual design, styling, responsive UI
 - Frontend interaction states
@@ -47,6 +46,11 @@ Claude should avoid changing:
 
 Codex should focus on:
 
+- Logged-in product pages
+- Authenticated dashboard views
+- Creator database UI
+- Campaign workspace UI
+- Data report UI
 - Database schema
 - Authentication and member accounts
 - API routes
@@ -60,9 +64,8 @@ Codex should focus on:
 
 Codex should avoid changing:
 
-- Visual layout and styling owned by Claude
-- Marketing copy and frontend polish unless required to wire backend behavior
-- Design system choices unless the user asks Codex to do it
+- Public marketing page visual layout and styling owned by Claude
+- Public marketing copy unless required to wire product behavior
 
 ## Before Writing Code
 
@@ -85,8 +88,9 @@ Confirm you are in the correct workspace and that the task belongs to your scope
 - Do not edit secrets or paste API keys into code.
 - Do not edit `.env` or `.env.local` unless the user explicitly asks.
 - Prefer small, focused changes.
-- Use clear Chinese for app UI unless the user requests English.
+- Use English for all app UI. The user has requested English as the default language for every page.
 - After meaningful changes, generate a local preview or tell the user why preview is blocked.
+- After every logged-in product UI/design code change, create a Git checkpoint commit after verification. Use `checkpoint: <short description>` and add an annotated tag named `checkpoint/design-YYYYMMDD-HHMM-<slug>`.
 
 ## Before Commit Or Push
 
@@ -98,6 +102,41 @@ npm run build
 ```
 
 Only stage files related to your own task.
+
+## Code Rollback Checkpoints
+
+Design checkpoints are normal Git commits plus annotated tags.
+
+Create a checkpoint after each verified design/UI code change:
+
+```bash
+npm run typecheck
+npm run build
+git add <changed files>
+git commit -m "checkpoint: <short description>"
+git tag -a checkpoint/design-YYYYMMDD-HHMM-<slug> -m "Design checkpoint: <short description>"
+```
+
+Preview checkpoints:
+
+```bash
+git log --oneline --decorate --all --grep="checkpoint:"
+git tag --list "checkpoint/design-*"
+```
+
+Rollback safely by creating a review branch from a checkpoint:
+
+```bash
+git switch -c rollback/<slug> checkpoint/design-YYYYMMDD-HHMM-<slug>
+npm run build
+```
+
+Undo a checkpoint on the current branch without rewriting history:
+
+```bash
+git revert <checkpoint-commit-sha>
+npm run build
+```
 
 ## Commit Message Style
 

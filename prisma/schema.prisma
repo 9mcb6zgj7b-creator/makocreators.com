@@ -1,0 +1,402 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String?  @unique
+  phone     String?  @unique
+  name      String?
+  imageUrl  String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  sessions          Session[]
+  memberships       WorkspaceMember[]
+  creatorPersonas   CreatorPersona[]
+  creatorLeads      CreatorLead[]
+  creatorMatchRuns  CreatorMatchRun[]
+  shortlists        Shortlist[]
+  outreachDrafts    OutreachDraft[]
+  dashboardTasks    DashboardTask[]
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  userId    String
+  tokenHash String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+model LoginChallenge {
+  id          String   @id @default(cuid())
+  identifier  String
+  email       String?
+  phone       String?
+  codeHash    String
+  expiresAt   DateTime
+  consumedAt  DateTime?
+  createdAt   DateTime @default(now())
+
+  @@index([identifier])
+  @@index([expiresAt])
+}
+
+model Workspace {
+  id        String   @id @default(cuid())
+  name      String
+  slug      String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  members          WorkspaceMember[]
+  creatorPersonas  CreatorPersona[]
+  creatorLeads     CreatorLead[]
+  creatorMatchRuns CreatorMatchRun[]
+  shortlists       Shortlist[]
+  outreachDrafts   OutreachDraft[]
+  campaigns        Campaign[]
+  dashboardTasks   DashboardTask[]
+}
+
+model WorkspaceMember {
+  id          String        @id @default(cuid())
+  workspaceId String
+  userId      String
+  role        WorkspaceRole @default(OWNER)
+  createdAt   DateTime      @default(now())
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([workspaceId, userId])
+  @@index([userId])
+}
+
+enum WorkspaceRole {
+  OWNER
+  ADMIN
+  MEMBER
+}
+
+model CreatorPersona {
+  id          String        @id @default(cuid())
+  workspaceId String
+  createdById String
+  title       String
+  description String        @db.Text
+  business    String        @db.Text
+  referenceUrls String[]
+  competitorUrls String[]
+  idealCreator String?      @db.Text
+  status      PersonaStatus @default(DRAFT)
+  metadata    Json          @default("{}")
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  createdBy User      @relation(fields: [createdById], references: [id], onDelete: Cascade)
+  matchRuns CreatorMatchRun[]
+  shortlistItems ShortlistItem[]
+
+  @@index([workspaceId, createdAt])
+}
+
+enum PersonaStatus {
+  DRAFT
+  GENERATED
+  ARCHIVED
+}
+
+model CreatorLead {
+  id          String            @id @default(cuid())
+  workspaceId String
+  createdById String
+  source      CreatorLeadSource
+  status      CreatorLeadStatus @default(PENDING_ANALYSIS)
+  platform    Platform         @default(OTHER)
+  profileUrl  String
+  displayName String?
+  handle      String?
+  city        String?
+  categories  String[]
+  followers   Int?
+  avgViews    Int?
+  contactEmail String?
+  contactPhone String?
+  contactNotes String?         @db.Text
+  priceMin    Int?
+  priceMax    Int?
+  notes       String?          @db.Text
+  rawInput    Json             @default("{}")
+  metadata    Json             @default("{}")
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  createdBy User      @relation(fields: [createdById], references: [id], onDelete: Cascade)
+
+  @@unique([workspaceId, profileUrl])
+  @@index([workspaceId, status, createdAt])
+  @@index([workspaceId, platform])
+}
+
+enum CreatorLeadSource {
+  LINK
+  EXCEL
+  MANUAL
+}
+
+enum CreatorLeadStatus {
+  PENDING_ANALYSIS
+  ANALYZED
+  NEEDS_REVIEW
+  APPROVED
+  ARCHIVED
+  FAILED
+}
+
+model Creator {
+  id          String   @id @default(cuid())
+  displayName String
+  handle      String   @unique
+  bio         String?  @db.Text
+  avatarUrl   String?
+  location    String?
+  categories  String[]
+  languages   String[]
+  metadata    Json     @default("{}")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  profiles       CreatorSocialProfile[]
+  matchResults   CreatorMatchResult[]
+  shortlistItems ShortlistItem[]
+
+}
+
+model CreatorSocialProfile {
+  id          String   @id @default(cuid())
+  creatorId   String
+  platform    Platform
+  url         String
+  handle      String
+  followers   Int?
+  avgViews    Int?
+  engagementRate Float?
+  verified    Boolean @default(false)
+  metadata    Json    @default("{}")
+  updatedAt   DateTime @updatedAt
+
+  creator Creator @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+
+  @@unique([platform, handle])
+  @@index([creatorId])
+}
+
+enum Platform {
+  INSTAGRAM
+  TIKTOK
+  YOUTUBE
+  XIAOHONGSHU
+  OTHER
+}
+
+model CreatorMatchRun {
+  id          String         @id @default(cuid())
+  workspaceId String
+  createdById String
+  personaId   String?
+  status      MatchRunStatus @default(PENDING)
+  query       Json           @default("{}")
+  startedAt   DateTime?
+  completedAt DateTime?
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  workspace Workspace       @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  createdBy User            @relation(fields: [createdById], references: [id], onDelete: Cascade)
+  persona   CreatorPersona? @relation(fields: [personaId], references: [id], onDelete: SetNull)
+  results   CreatorMatchResult[]
+
+  @@index([workspaceId, createdAt])
+}
+
+enum MatchRunStatus {
+  PENDING
+  RUNNING
+  COMPLETED
+  FAILED
+}
+
+model CreatorMatchResult {
+  id        String @id @default(cuid())
+  runId     String
+  creatorId String
+  score     Float
+  reasons   String[]
+  risks     String[]
+  estimatedPriceMin Int?
+  estimatedPriceMax Int?
+  metadata  Json   @default("{}")
+  createdAt DateTime @default(now())
+
+  run     CreatorMatchRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+  creator Creator         @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+
+  @@unique([runId, creatorId])
+  @@index([creatorId])
+}
+
+model Shortlist {
+  id          String   @id @default(cuid())
+  workspaceId String
+  createdById String
+  name        String
+  notes       String?  @db.Text
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  createdBy User      @relation(fields: [createdById], references: [id], onDelete: Cascade)
+  items     ShortlistItem[]
+
+  @@index([workspaceId, createdAt])
+}
+
+model ShortlistItem {
+  id          String   @id @default(cuid())
+  shortlistId String
+  creatorId   String
+  personaId   String?
+  priority    Int      @default(0)
+  status      ShortlistItemStatus @default(NEW)
+  notes       String?  @db.Text
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  shortlist Shortlist       @relation(fields: [shortlistId], references: [id], onDelete: Cascade)
+  creator   Creator         @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  persona   CreatorPersona? @relation(fields: [personaId], references: [id], onDelete: SetNull)
+
+  @@unique([shortlistId, creatorId])
+}
+
+enum ShortlistItemStatus {
+  NEW
+  CONTACTED
+  REPLIED
+  APPROVED
+  REJECTED
+}
+
+model OutreachDraft {
+  id          String   @id @default(cuid())
+  workspaceId String
+  createdById String
+  shortlistItemId String?
+  channel     OutreachChannel
+  subject     String?
+  body        String   @db.Text
+  status      OutreachStatus @default(DRAFT)
+  metadata    Json     @default("{}")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  createdBy User      @relation(fields: [createdById], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId, createdAt])
+}
+
+enum OutreachChannel {
+  EMAIL
+  DM
+  SMS
+  WHATSAPP
+  WECHAT
+  OTHER
+}
+
+enum OutreachStatus {
+  DRAFT
+  SENT
+  ARCHIVED
+}
+
+model Campaign {
+  id          String   @id @default(cuid())
+  workspaceId String
+  name        String
+  objective   String?
+  budgetMin   Int?
+  budgetMax   Int?
+  startsAt    DateTime?
+  endsAt      DateTime?
+  status      CampaignStatus @default(DRAFT)
+  metadata    Json     @default("{}")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  tasks     DashboardTask[]
+
+  @@index([workspaceId, createdAt])
+}
+
+enum CampaignStatus {
+  DRAFT
+  ACTIVE
+  PAUSED
+  COMPLETED
+  ARCHIVED
+}
+
+model DashboardTask {
+  id          String              @id @default(cuid())
+  workspaceId String
+  createdById String
+  campaignId  String?
+  title       String
+  description String?             @db.Text
+  type        DashboardTaskType   @default(GENERAL)
+  status      DashboardTaskStatus @default(OPEN)
+  priority    Int                 @default(0)
+  dueAt       DateTime?
+  metadata    Json                @default("{}")
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  createdBy User      @relation(fields: [createdById], references: [id], onDelete: Cascade)
+  campaign  Campaign? @relation(fields: [campaignId], references: [id], onDelete: SetNull)
+
+  @@index([workspaceId, status, priority, createdAt])
+  @@index([campaignId])
+}
+
+enum DashboardTaskType {
+  GENERAL
+  CREATOR_REVIEW
+  CAMPAIGN_SETUP
+  OUTREACH
+  REPORT
+}
+
+enum DashboardTaskStatus {
+  OPEN
+  IN_PROGRESS
+  DONE
+  ARCHIVED
+}
