@@ -1,17 +1,32 @@
 import { AppShell, Icon } from "@/components/app-shell";
+import { requirePageContext } from "@/lib/page-auth";
 
-export default function ReportsPage() {
+export const dynamic = "force-dynamic";
+
+export default async function ReportsPage() {
+  const { user, workspace, role } = await requirePageContext("/reports");
+  const firstName = user.name?.split(/[ @+]/)[0] || "there";
+
   return (
-    <AppShell activeNav="reports">
+    <AppShell
+      activeNav="reports"
+      user={{
+        name: user.name,
+        email: user.email,
+        phone: user.phone,
+        workspaceName: workspace.name,
+        role,
+      }}
+    >
       <section className="reports-page">
         <div className="reports-hero">
           <div>
-            <h1>Welcome back, Mike Liu!</h1>
+            <h1>Welcome back, {firstName}!</h1>
             <p>Review campaign budget, creator performance, and published content.</p>
           </div>
-          <button className="new-plan-button" type="button">
+          <a className="new-plan-button" href="/campaigns/new">
             New Campaign
-          </button>
+          </a>
         </div>
 
         <section className="report-filters" aria-labelledby="report-filters-title">

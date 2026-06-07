@@ -1,4 +1,7 @@
 import { AppShell, Icon } from "@/components/app-shell";
+import { requirePageContext } from "@/lib/page-auth";
+
+export const dynamic = "force-dynamic";
 
 const campaigns = [
   {
@@ -8,15 +11,26 @@ const campaigns = [
   },
 ];
 
-export default function CampaignsPage() {
+export default async function CampaignsPage() {
+  const { user, workspace, role } = await requirePageContext("/campaigns");
+
   return (
-    <AppShell activeNav="campaigns">
+    <AppShell
+      activeNav="campaigns"
+      user={{
+        name: user.name,
+        email: user.email,
+        phone: user.phone,
+        workspaceName: workspace.name,
+        role,
+      }}
+    >
       <section className="campaigns-page">
         <div className="page-heading-row">
           <h1>Campaign List</h1>
-          <button className="new-plan-button" type="button">
+          <a className="new-plan-button" href="/campaigns/new">
             New Campaign
-          </button>
+          </a>
         </div>
 
         <div className="campaign-grid" aria-label="Campaigns">

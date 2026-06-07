@@ -1,6 +1,6 @@
 # Backend Skeleton
 
-This backend is owned by Codex.
+This product is owned end to end by Codex: frontend, backend, authentication, data isolation, preview, and deployment readiness.
 
 ## Runtime
 
@@ -74,16 +74,32 @@ Frontend can wire this sequence:
 
 1. Request login code with `POST /api/auth/request-code`.
 2. Verify code with `POST /api/auth/verify-code`.
-3. Load logged-in home dashboard with `GET /api/dashboard/home`.
-4. Create a campaign with `POST /api/campaigns`.
-5. Create or read dashboard tasks with `POST /api/tasks` and `GET /api/tasks`.
-6. Submit creator profile links with `POST /api/creator-leads`.
-7. Import creator spreadsheets with `POST /api/creator-leads/import`.
-8. Create creator persona with `POST /api/creator-personas`.
-9. Start match run with `POST /api/match-runs`.
-10. Create shortlist with `POST /api/shortlists`.
-11. Add creators to shortlist with `POST /api/shortlists/:id/items`.
-12. Create outreach draft with `POST /api/outreach-drafts`.
+3. Backend sets the `maco_session` http-only cookie.
+4. Frontend redirects to `/dashboard`.
+5. Protected pages call `getRequestContext()` through `requirePageContext()`.
+6. Backend routes filter data by the current workspace.
+7. Load logged-in home dashboard with `GET /api/dashboard/home`.
+8. Create a campaign with `POST /api/campaigns`.
+9. Create or read dashboard tasks with `POST /api/tasks` and `GET /api/tasks`.
+10. Submit creator profile links with `POST /api/creator-leads`.
+11. Import creator spreadsheets with `POST /api/creator-leads/import`.
+12. Create creator persona with `POST /api/creator-personas`.
+13. Start match run with `POST /api/match-runs`.
+14. Create shortlist with `POST /api/shortlists`.
+15. Add creators to shortlist with `POST /api/shortlists/:id/items`.
+16. Create outreach draft with `POST /api/outreach-drafts`.
+
+## Frontend Connection
+
+Product routes:
+
+- `/login`: email or phone sign-in
+- `/dashboard`: authenticated home
+- `/creators`: authenticated creator workspace and intake
+- `/campaigns`: authenticated campaign list
+- `/reports`: authenticated reports dashboard
+
+See `FRONTEND_BACKEND_FLOW.md` for the full login, session, workspace, and logout path.
 
 ## Logged-In Home Dashboard
 
@@ -105,8 +121,8 @@ Task creation example:
 
 ```json
 {
-  "title": "审核本周新导入达人",
-  "description": "确认城市、类别、联系方式和报价",
+  "title": "Review this week's imported creators",
+  "description": "Confirm city, category, contact details, and pricing",
   "type": "CREATOR_REVIEW",
   "priority": 20
 }
