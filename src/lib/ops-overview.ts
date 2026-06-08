@@ -18,10 +18,12 @@ export type OpsCreator = {
 };
 
 export type OpsApproval = {
+  id?: string;
   type: string;
   title: string;
   summary: string;
   risk: OpsRiskLevel;
+  status?: string;
 };
 
 export type OpsPipelineStage = {
@@ -181,7 +183,7 @@ export async function getOpsOverview(workspaceId: string): Promise<OpsOverview> 
     return buildPreviewOverview("preview");
   }
 
-  const [creatorLeadCount, matchRunCount, draftCount, openTaskCount] = await Promise.all([
+  const [creatorLeadCount, matchRunCount, draftCount, openTaskCount, approvals] = await Promise.all([
     prisma.creatorLead.count({ where: { workspaceId } }),
     prisma.creatorMatchRun.count({ where: { workspaceId } }),
     prisma.outreachDraft.count({ where: { workspaceId, status: "DRAFT" } }),
@@ -191,11 +193,15 @@ export async function getOpsOverview(workspaceId: string): Promise<OpsOverview> 
         status: { in: ["OPEN", "IN_PROGRESS"] },
       },
     }),
+    getPendingApprovals(workspaceId),
   ]);
 
   const overview = buildPreviewOverview("workspace");
+  const approvalItems = approvals.length ? approvals : overview.approvals;
+
   return {
     ...overview,
+    approvals: approvalItems,
     metrics: [
       {
         label: "Creators tracked",
@@ -213,12 +219,56 @@ export async function getOpsOverview(workspaceId: string): Promise<OpsOverview> 
         note: draftCount ? "Draft outreach items" : "Human review queue",
       },
       {
-        label: "Open ops tasks",
-        value: openTaskCount || overview.metrics[3].value,
-        note: openTaskCount ? "Workspace action queue" : "No false first-person claims",
+        label: "Approval items",
+        value: approvals.length || overview.metrics[3].value,
+        note: approvals.length ? "Workspace human review queue" : "No false first-person claims",
       },
     ],
+    pipeline: [
+      overview.pipeline[0],
+      overview.pipeline[1],
+      { label: "Needs approval", count: approvals.length || overview.pipeline[2].count },
+      { label: "Open ops tasks", count: openTaskCount || overview.pipeline[3].count },
+    ],
   };
+}
+
+async function getPendingApprovals(workspaceId: string): Promise<OpsApproval[]> {
+  try {
+    const approvals = await prisma.approval.findMany({
+      where: {
+        workspaceId,
+        status: "PENDING",
+      },
+      orderBy: [{ riskLevel: "desc" }, { createdAt: "desc" }],
+      take: 10,
+    });
+
+    return approvals.map(approval => ({
+      id: approval.id,
+      type: formatApprovalType(approval.type),
+      title: approval.title,
+      summary: approval.summary,
+      risk: formatRiskLevel(approval.riskLevel),
+      status: approval.status,
+    }));
+  } catch {
+    return [];
+  }
+}
+
+function formatApprovalType(type: string) {
+  return type
+    .toLowerCase()
+    .split("_")
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ");
+}
+
+function formatRiskLevel(risk: string): OpsRiskLevel {
+  if (risk === "HIGH") return "High";
+  if (risk === "LOW") return "Low";
+  return "Medium";
 }
 
 function buildPreviewOverview(source: OpsOverview["source"]): OpsOverview {

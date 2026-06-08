@@ -106,34 +106,40 @@ Recommended metadata shape:
 
 ### Approval Gate
 
-The schema does not yet have a dedicated approval table. For the MVP prototype, approval items are UI data. For backend implementation, add an `Approval` model.
+The schema now has a dedicated `Approval` model for human-gated actions. Approval items are internal records only; they do not send messages, ship samples, promise payment, grant rights, publish content, or launch ads.
 
-Recommended model:
+Current model:
 
 ```prisma
 model Approval {
-  id          String   @id @default(cuid())
-  workspaceId String
-  campaignId  String?
-  creatorId   String?
-  type        ApprovalType
-  title       String
-  summary     String   @db.Text
-  riskLevel   ApprovalRisk
-  status      ApprovalStatus @default(PENDING)
-  metadata    Json     @default("{}")
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id              String         @id @default(cuid())
+  workspaceId     String
+  createdById     String
+  reviewedById    String?
+  campaignId      String?
+  creatorId       String?
+  outreachDraftId String?
+  type            ApprovalType
+  title           String
+  summary         String         @db.Text
+  riskLevel       ApprovalRisk
+  status          ApprovalStatus @default(PENDING)
+  decisionNotes   String?        @db.Text
+  reviewedAt      DateTime?
+  metadata        Json           @default("{}")
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
 }
 ```
 
-Recommended enums:
+Current types:
 
 - `SEND_OUTREACH`
 - `SHIP_SAMPLE`
 - `PAID_COLLABORATION`
 - `USAGE_RIGHTS`
 - `APPROVE_AI_SCRIPT`
+- `GENERAL_REVIEW`
 
 Statuses:
 
@@ -141,12 +147,21 @@ Statuses:
 - `APPROVED`
 - `REJECTED`
 - `NEEDS_CHANGES`
+- `ARCHIVED`
 
 Risk:
 
 - `LOW`
 - `MEDIUM`
 - `HIGH`
+
+Current API:
+
+- `GET /api/approvals`
+- `POST /api/approvals`
+- `PATCH /api/approvals/:id`
+
+`/ops` reads pending approvals through `getOpsOverview()`. If the database is unavailable or the approval table has not been pushed yet, the MVP falls back to preview approval examples so the cockpit remains usable locally.
 
 ### Campaign Pipeline
 

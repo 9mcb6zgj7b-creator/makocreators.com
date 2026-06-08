@@ -123,13 +123,15 @@ Mako prepares the work package:
 Included now:
 
 - `/ops` local prototype inside the real Next.js project.
-- Static seeded data.
+- Preview seeded data with a shared overview data layer.
+- Persistent `Approval` model and internal approval API.
 - English UI copy.
 - Safety boundary surfaced in the product.
 
 Deferred:
 
-- Persistent approval model.
+- Applying the approval table to the live database.
+- Creating real approval items from scoring and draft generation workflows.
 - Live scoring jobs.
 - Creator import to ops cockpit linkage.
 - External messaging integrations.

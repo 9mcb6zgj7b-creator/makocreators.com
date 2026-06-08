@@ -105,7 +105,7 @@ Hard-blocked actions:
 
 ### 6. Approval Routing
 
-Mako creates an approval item for any sensitive next step.
+Mako creates an internal `Approval` item for any sensitive next step. The item can be listed through `GET /api/approvals`, created through `POST /api/approvals`, and reviewed through `PATCH /api/approvals/:id`.
 
 Approval examples:
 
@@ -114,6 +114,16 @@ Approval examples:
 - Discuss paid collaboration.
 - Request usage rights.
 - Approve AI content script.
+
+Approval status options:
+
+- `PENDING`
+- `APPROVED`
+- `REJECTED`
+- `NEEDS_CHANGES`
+- `ARCHIVED`
+
+Approval records can reference a campaign, creator, or outreach draft, but they remain internal workflow records.
 
 ### 7. Human Execution
 

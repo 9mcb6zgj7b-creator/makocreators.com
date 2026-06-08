@@ -24,6 +24,8 @@ model User {
   shortlists        Shortlist[]
   outreachDrafts    OutreachDraft[]
   dashboardTasks    DashboardTask[]
+  approvalsCreated  Approval[] @relation("ApprovalCreatedBy")
+  approvalsReviewed Approval[] @relation("ApprovalReviewedBy")
 }
 
 model Session {
@@ -68,6 +70,7 @@ model Workspace {
   outreachDrafts   OutreachDraft[]
   campaigns        Campaign[]
   dashboardTasks   DashboardTask[]
+  approvals        Approval[]
 }
 
 model WorkspaceMember {
@@ -183,6 +186,7 @@ model Creator {
   profiles       CreatorSocialProfile[]
   matchResults   CreatorMatchResult[]
   shortlistItems ShortlistItem[]
+  approvals      Approval[]
 
 }
 
@@ -316,6 +320,7 @@ model OutreachDraft {
 
   workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   createdBy User      @relation(fields: [createdById], references: [id], onDelete: Cascade)
+  approvals Approval[]
 
   @@index([workspaceId, createdAt])
 }
@@ -351,6 +356,7 @@ model Campaign {
 
   workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   tasks     DashboardTask[]
+  approvals Approval[]
 
   @@index([workspaceId, createdAt])
 }
@@ -398,5 +404,60 @@ enum DashboardTaskStatus {
   OPEN
   IN_PROGRESS
   DONE
+  ARCHIVED
+}
+
+model Approval {
+  id              String         @id @default(cuid())
+  workspaceId     String
+  createdById     String
+  reviewedById    String?
+  campaignId      String?
+  creatorId       String?
+  outreachDraftId String?
+  type            ApprovalType
+  title           String
+  summary         String         @db.Text
+  riskLevel       ApprovalRisk
+  status          ApprovalStatus @default(PENDING)
+  decisionNotes   String?        @db.Text
+  reviewedAt      DateTime?
+  metadata        Json           @default("{}")
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  workspace     Workspace      @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  createdBy     User           @relation("ApprovalCreatedBy", fields: [createdById], references: [id], onDelete: Cascade)
+  reviewedBy    User?          @relation("ApprovalReviewedBy", fields: [reviewedById], references: [id], onDelete: SetNull)
+  campaign      Campaign?      @relation(fields: [campaignId], references: [id], onDelete: SetNull)
+  creator       Creator?       @relation(fields: [creatorId], references: [id], onDelete: SetNull)
+  outreachDraft OutreachDraft? @relation(fields: [outreachDraftId], references: [id], onDelete: SetNull)
+
+  @@index([workspaceId, status, riskLevel, createdAt])
+  @@index([campaignId])
+  @@index([creatorId])
+  @@index([outreachDraftId])
+}
+
+enum ApprovalType {
+  SEND_OUTREACH
+  SHIP_SAMPLE
+  PAID_COLLABORATION
+  USAGE_RIGHTS
+  APPROVE_AI_SCRIPT
+  GENERAL_REVIEW
+}
+
+enum ApprovalRisk {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+enum ApprovalStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  NEEDS_CHANGES
   ARCHIVED
 }
