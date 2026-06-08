@@ -1692,13 +1692,14 @@ h2 {
 }
 
 .campaign-intake-shell {
-  width: min(760px, calc(100vw - 48px));
+  width: min(1120px, calc(100vw - 48px));
   margin: 28px auto 0;
 }
 
 .campaign-chat-thread {
   display: grid;
   gap: 18px;
+  width: min(760px, 100%);
 }
 
 .campaign-message {
@@ -1860,6 +1861,7 @@ h2 {
   position: sticky;
   bottom: 18px;
   margin-top: 28px;
+  width: min(760px, 100%);
 }
 
 .campaign-composer {
@@ -1910,6 +1912,155 @@ h2 {
 .campaign-start-button:disabled {
   background: #eceef2;
   color: #a1a7b1;
+}
+
+.campaign-platform-shell {
+  display: grid;
+  gap: 34px;
+  padding-top: 34px;
+}
+
+.campaign-platform-header {
+  display: grid;
+  justify-items: center;
+  gap: 10px;
+  text-align: center;
+}
+
+.campaign-platform-header h1 {
+  margin: 0;
+  color: #171a21;
+  font-size: clamp(28px, 3.8vw, 42px);
+  line-height: 1.14;
+}
+
+.campaign-platform-header p {
+  margin: 0;
+  color: #757d8b;
+  font-size: 18px;
+  line-height: 1.6;
+}
+
+.campaign-platform-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 20px;
+}
+
+.campaign-platform-card {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: start;
+  gap: 16px;
+  min-height: 160px;
+  border: 1px solid #e2e7ef;
+  border-radius: 18px;
+  background: #ffffff;
+  padding: 20px;
+  text-align: left;
+  transition: border-color 160ms ease, box-shadow 160ms ease, transform 160ms ease;
+}
+
+.campaign-platform-card:hover {
+  transform: translateY(-1px);
+  border-color: #d5dce8;
+  box-shadow: 0 18px 34px rgba(15, 18, 24, 0.06);
+}
+
+.campaign-platform-card.selected {
+  border-color: #ff7a3d;
+  box-shadow: 0 18px 34px rgba(255, 122, 61, 0.12);
+}
+
+.campaign-platform-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  font-size: 12px;
+  font-weight: 900;
+  color: #ffffff;
+}
+
+.campaign-platform-badge.instagram {
+  background: linear-gradient(135deg, #7c3aed 0%, #ec4899 50%, #f59e0b 100%);
+}
+
+.campaign-platform-badge.tiktok {
+  background: linear-gradient(135deg, #111318 0%, #1f2937 100%);
+}
+
+.campaign-platform-copy {
+  display: grid;
+  gap: 8px;
+}
+
+.campaign-platform-copy strong {
+  color: #171a21;
+  font-size: 22px;
+  font-weight: 900;
+  line-height: 1.25;
+}
+
+.campaign-platform-copy span {
+  color: #666f7d;
+  font-size: 15px;
+  line-height: 1.65;
+}
+
+.campaign-platform-check {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border: 1.5px solid #d4dbe5;
+  border-radius: 7px;
+  color: transparent;
+  font-size: 14px;
+  font-weight: 900;
+}
+
+.campaign-platform-check.selected {
+  border-color: #ff7a3d;
+  background: #ff7a3d;
+  color: #ffffff;
+}
+
+.campaign-platform-actions {
+  display: grid;
+  grid-template-columns: 140px minmax(280px, 360px);
+  justify-content: center;
+  align-items: center;
+  gap: 28px;
+  padding-top: 10px;
+}
+
+.campaign-platform-back,
+.campaign-platform-next {
+  min-height: 56px;
+  border-radius: 16px;
+  font-size: 18px;
+  font-weight: 800;
+}
+
+.campaign-platform-back {
+  border: 0;
+  background: transparent;
+  color: #3f4652;
+}
+
+.campaign-platform-next {
+  border: 1px solid #e0e4eb;
+  background: #ffffff;
+  color: #252a33;
+}
+
+.campaign-platform-next:disabled {
+  background: #f3f4f6;
+  color: #a4a9b2;
 }
 
 .campaign-wizard-header {
@@ -2397,13 +2548,22 @@ h2 {
   }
 
   .campaign-intake-shell {
-    width: min(100%, 760px);
+    width: min(100%, 1120px);
     margin-top: 28px;
+  }
+
+  .campaign-chat-thread,
+  .campaign-composer-shell {
+    width: min(760px, 100%);
   }
 
   .campaign-reply-group,
   .campaign-selection-summary {
     margin-left: 0;
+  }
+
+  .campaign-platform-grid {
+    grid-template-columns: 1fr;
   }
 }
 
@@ -2577,6 +2737,11 @@ h2 {
     margin-top: 20px;
   }
 
+  .campaign-chat-thread,
+  .campaign-composer-shell {
+    width: 100%;
+  }
+
   .campaign-message {
     gap: 10px;
   }
@@ -2614,6 +2779,24 @@ h2 {
 
   .campaign-start-button {
     width: 100%;
+  }
+
+  .campaign-platform-header p {
+    font-size: 16px;
+  }
+
+  .campaign-platform-card {
+    grid-template-columns: auto 1fr;
+  }
+
+  .campaign-platform-check {
+    grid-column: 2;
+    justify-self: end;
+  }
+
+  .campaign-platform-actions {
+    grid-template-columns: 1fr;
+    gap: 14px;
   }
 
   .wizard-brand strong {

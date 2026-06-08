@@ -29,6 +29,29 @@ const contentSteps = [
 
 const businessOptions = ["Restaurant", "Barbershop", "Spa", "Manicure", "Others"];
 const launchCities = ["Los Angeles"];
+const platformOptions = [
+  {
+    id: "instagram-reels",
+    badge: "IG",
+    badgeClass: "instagram",
+    title: "Instagram Reels",
+    description: "Short-form vertical videos. Great for quick discovery, product highlights, and local awareness.",
+  },
+  {
+    id: "instagram-carousel",
+    badge: "IG",
+    badgeClass: "instagram",
+    title: "Instagram Carousel",
+    description: "Multi-image storytelling. Great for before and afters, menus, services, and comparisons.",
+  },
+  {
+    id: "tiktok-video",
+    badge: "TT",
+    badgeClass: "tiktok",
+    title: "TikTok Video",
+    description: "Feed-first short videos with strong local reach, reactions, and creator personality.",
+  },
+];
 
 export function CampaignWizard() {
   const [mode, setMode] = useState<"intro" | "wizard">("intro");
@@ -36,6 +59,11 @@ export function CampaignWizard() {
   const [businessType, setBusinessType] = useState("Restaurant");
   const [customBusinessType, setCustomBusinessType] = useState("");
   const [city, setCity] = useState("");
+  const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>([
+    "instagram-reels",
+    "instagram-carousel",
+    "tiktok-video",
+  ]);
   const [activeStep, setActiveStep] = useState(0);
   const [campaignName, setCampaignName] = useState("Los Angeles Restaurant Review Influencer Campaign");
   const [goal, setGoal] = useState("Increase brand exposure and attract customers for Los Angeles restaurants");
@@ -50,6 +78,10 @@ export function CampaignWizard() {
 
   function goBack() {
     if (mode === "intro") {
+      if (introStep === 2) {
+        setIntroStep(1);
+        return;
+      }
       if (introStep === 1) {
         setIntroStep(0);
         return;
@@ -59,7 +91,7 @@ export function CampaignWizard() {
     }
     if (activeStep === 0) {
       setMode("intro");
-      setIntroStep(1);
+      setIntroStep(2);
       return;
     }
     setActiveStep(step => Math.max(step - 1, 0));
@@ -68,6 +100,14 @@ export function CampaignWizard() {
   function chooseBusiness(option: string) {
     setBusinessType(option);
     setCity("");
+  }
+
+  function togglePlatform(id: string) {
+    setSelectedPlatforms(currentSelection =>
+      currentSelection.includes(id)
+        ? currentSelection.filter(item => item !== id)
+        : [...currentSelection, id]
+    );
   }
 
   function enterWizard() {
@@ -85,10 +125,18 @@ export function CampaignWizard() {
       setIntroStep(1);
       return;
     }
+    if (introStep === 1) {
+      setIntroStep(2);
+      return;
+    }
     enterWizard();
   }
 
-  const introReady = introStep === 0 ? Boolean(resolvedBusinessType) : Boolean(city);
+  const introReady = introStep === 0
+    ? Boolean(resolvedBusinessType)
+    : introStep === 1
+      ? Boolean(city)
+      : selectedPlatforms.length > 0;
 
   if (mode === "intro") {
     return (
@@ -207,6 +255,47 @@ export function CampaignWizard() {
                 </div>
               </div>
             </>
+          ) : null}
+
+          {introStep === 2 ? (
+            <div className="campaign-platform-shell">
+              <div className="campaign-platform-header">
+                <h1>Choose creator platforms and content formats</h1>
+                <p>You can select more than one platform.</p>
+              </div>
+
+              <div className="campaign-platform-grid">
+                {platformOptions.map(option => {
+                  const selected = selectedPlatforms.includes(option.id);
+                  return (
+                    <button
+                      key={option.id}
+                      type="button"
+                      className={`campaign-platform-card ${selected ? "selected" : ""}`}
+                      onClick={() => togglePlatform(option.id)}
+                    >
+                      <div className={`campaign-platform-badge ${option.badgeClass}`}>{option.badge}</div>
+                      <div className="campaign-platform-copy">
+                        <strong>{option.title}</strong>
+                        <span>{option.description}</span>
+                      </div>
+                      <div className={`campaign-platform-check ${selected ? "selected" : ""}`}>
+                        {selected ? "✓" : ""}
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+
+              <div className="campaign-platform-actions">
+                <button type="button" className="campaign-platform-back" onClick={goBack}>
+                  Back
+                </button>
+                <button type="button" className="campaign-platform-next" disabled={!introReady} onClick={continueIntro}>
+                  Next
+                </button>
+              </div>
+            </div>
           ) : null}
         </section>
       </main>
