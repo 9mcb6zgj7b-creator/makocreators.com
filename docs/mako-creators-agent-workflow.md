@@ -90,6 +90,8 @@ Blocked:
 - False first-person product-use claims.
 - External sending.
 
+When an outreach draft is created through `POST /api/outreach-drafts`, Mako also creates a linked `SEND_OUTREACH` approval item. This makes every external-message candidate visible in the internal approval queue before any human action happens outside the MVP.
+
 ### 5. Guardrail Scan
 
 Hard-blocked actions:

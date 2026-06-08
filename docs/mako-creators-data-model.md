@@ -160,6 +160,7 @@ Current API:
 - `GET /api/approvals`
 - `POST /api/approvals`
 - `PATCH /api/approvals/:id`
+- `POST /api/outreach-drafts` creates an `OutreachDraft` and a linked `SEND_OUTREACH` approval item in the same transaction.
 
 `/ops` reads pending approvals through `getOpsOverview()`. If the database is unavailable or the approval table has not been pushed yet, the MVP falls back to preview approval examples so the cockpit remains usable locally.
 
