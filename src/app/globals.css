@@ -1763,11 +1763,16 @@ h2 {
   text-transform: uppercase;
 }
 
-.campaign-message-bubble h1 {
+.campaign-message-bubble h1,
+.campaign-message-bubble h2 {
   margin: 0 0 10px;
   color: #111318;
-  font-size: clamp(32px, 4vw, 44px);
+  font-size: clamp(28px, 4vw, 44px);
   line-height: 1.12;
+}
+
+.campaign-message-bubble h2 {
+  font-size: clamp(24px, 3.2vw, 34px);
 }
 
 .campaign-message-bubble p {
@@ -1789,6 +1794,10 @@ h2 {
   max-width: 720px;
 }
 
+.campaign-choice-panel.city-panel {
+  margin-top: -2px;
+}
+
 .campaign-choice-heading {
   margin: 0;
   color: #717886;
@@ -1801,6 +1810,12 @@ h2 {
 .campaign-choice-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.campaign-city-grid {
+  display: grid;
+  grid-template-columns: 1fr;
   gap: 12px;
 }
 
@@ -1874,11 +1889,20 @@ h2 {
   box-shadow: 0 0 0 4px rgba(255, 90, 31, 0.1);
 }
 
+.campaign-context-note {
+  margin: 0;
+  color: #7b8390;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
 .campaign-intake-actions {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 14px;
+  margin-left: 56px;
+  max-width: 720px;
   border: 1px solid #e0e4eb;
   border-radius: 18px;
   background: rgba(255, 255, 255, 0.92);
@@ -2401,7 +2425,8 @@ h2 {
     margin-top: 44px;
   }
 
-  .campaign-choice-panel {
+  .campaign-choice-panel,
+  .campaign-intake-actions {
     margin-left: 0;
   }
 }
@@ -2593,7 +2618,8 @@ h2 {
     padding: 18px;
   }
 
-  .campaign-message-bubble h1 {
+  .campaign-message-bubble h1,
+  .campaign-message-bubble h2 {
     font-size: 28px;
   }
 
@@ -2601,7 +2627,8 @@ h2 {
     font-size: 15px;
   }
 
-  .campaign-choice-panel {
+  .campaign-choice-panel,
+  .campaign-intake-actions {
     margin-left: 0;
   }
 

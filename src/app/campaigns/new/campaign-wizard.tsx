@@ -28,11 +28,13 @@ const contentSteps = [
 ];
 
 const businessOptions = ["Restaurant", "Barbershop", "Spa", "Manicure", "Others"];
+const launchCities = ["Los Angeles"];
 
 export function CampaignWizard() {
   const [mode, setMode] = useState<"intro" | "wizard">("intro");
   const [businessType, setBusinessType] = useState("Restaurant");
   const [customBusinessType, setCustomBusinessType] = useState("");
+  const [city, setCity] = useState("");
   const [activeStep, setActiveStep] = useState(0);
   const [campaignName, setCampaignName] = useState("Los Angeles Restaurant Review Influencer Campaign");
   const [goal, setGoal] = useState("Increase brand exposure and attract customers for Los Angeles restaurants");
@@ -57,11 +59,17 @@ export function CampaignWizard() {
     setActiveStep(step => Math.max(step - 1, 0));
   }
 
+  function chooseBusiness(option: string) {
+    setBusinessType(option);
+    setCity("");
+  }
+
   function enterWizard() {
     const businessLabel = resolvedBusinessType || "Local service";
-    setCampaignName(`${businessLabel} Creator Campaign`);
-    setProductName(businessLabel);
-    setGoal(`Increase visibility and attract more qualified local customers for this ${businessLabel.toLowerCase()} business.`);
+    const marketLabel = city || "Los Angeles";
+    setCampaignName(`${marketLabel} ${businessLabel} Creator Campaign`);
+    setProductName(`${marketLabel} ${businessLabel}`);
+    setGoal(`Increase visibility and attract more qualified local customers in ${marketLabel} for this ${businessLabel.toLowerCase()} business.`);
     setMode("wizard");
     setActiveStep(0);
   }
@@ -90,23 +98,15 @@ export function CampaignWizard() {
               </div>
             </article>
 
-            {resolvedBusinessType ? (
-              <article className="campaign-message user">
-                <div className="campaign-message-bubble">
-                  <p>{resolvedBusinessType}</p>
-                </div>
-              </article>
-            ) : null}
-
             <section className="campaign-choice-panel">
-              <p className="campaign-choice-heading">Choose one to begin</p>
+              <p className="campaign-choice-heading">Step 1</p>
               <div className="campaign-choice-grid">
                 {businessOptions.map(option => (
                   <button
                     key={option}
                     type="button"
                     className={`campaign-choice-card ${businessType === option ? "selected" : ""}`}
-                    onClick={() => setBusinessType(option)}
+                    onClick={() => chooseBusiness(option)}
                   >
                     <strong>{option}</strong>
                     <span>
@@ -124,19 +124,73 @@ export function CampaignWizard() {
                   <input
                     id="custom-business-type"
                     value={customBusinessType}
-                    onChange={event => setCustomBusinessType(event.target.value)}
+                    onChange={event => {
+                      setCustomBusinessType(event.target.value);
+                      setCity("");
+                    }}
                     placeholder="Example: roofing, dental clinic, med spa, pet grooming..."
                   />
                 </label>
               ) : null}
+            </section>
 
+            {resolvedBusinessType ? (
+              <article className="campaign-message user">
+                <div className="campaign-message-bubble">
+                  <p>{resolvedBusinessType}</p>
+                </div>
+              </article>
+            ) : null}
+
+            {resolvedBusinessType ? (
+              <>
+                <article className="campaign-message assistant">
+                  <div className="campaign-message-avatar" aria-hidden="true">
+                    <span>m</span>
+                  </div>
+                  <div className="campaign-message-bubble">
+                    <p className="campaign-message-label">Mako Creator</p>
+                    <h2>Which city are you starting with?</h2>
+                    <p>We&apos;re launching with Los Angeles first, then we&apos;ll expand to other major U.S. cities.</p>
+                  </div>
+                </article>
+
+                <section className="campaign-choice-panel city-panel">
+                  <p className="campaign-choice-heading">Step 2</p>
+                  <div className="campaign-city-grid">
+                    {launchCities.map(option => (
+                      <button
+                        key={option}
+                        type="button"
+                        className={`campaign-choice-card ${city === option ? "selected" : ""}`}
+                        onClick={() => setCity(option)}
+                      >
+                        <strong>{option}</strong>
+                        <span>Start your creator campaign in this market.</span>
+                      </button>
+                    ))}
+                  </div>
+                  <p className="campaign-context-note">More cities will be added here as we expand the rollout.</p>
+                </section>
+              </>
+            ) : null}
+
+            {city ? (
+              <article className="campaign-message user">
+                <div className="campaign-message-bubble">
+                  <p>{city}</p>
+                </div>
+              </article>
+            ) : null}
+
+            {resolvedBusinessType ? (
               <div className="campaign-intake-actions">
-                <p>I&apos;ll use this to tailor the next questions and creator recommendations.</p>
-                <button type="button" className="campaign-start-button" disabled={!resolvedBusinessType} onClick={enterWizard}>
+                <p>I&apos;ll use your business type and starting city to tailor the next questions and recommendations.</p>
+                <button type="button" className="campaign-start-button" disabled={!city} onClick={enterWizard}>
                   Continue
                 </button>
               </div>
-            </section>
+            ) : null}
           </div>
         </section>
       </main>
