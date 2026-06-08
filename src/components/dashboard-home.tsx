@@ -74,6 +74,17 @@ export function DashboardHome({ user, dashboard }: { user: AppShellUser; dashboa
           )}
         </section>
 
+        <section className="ops-entry-panel" aria-labelledby="ops-entry-title">
+          <div>
+            <span className="section-eyebrow">MVP workspace</span>
+            <h2 id="ops-entry-title">Creator Ops Cockpit</h2>
+            <p>Review creator scores, seeding versus AI content recommendations, approval gates, safe drafts, and the latest agent workflow.</p>
+          </div>
+          <a className="new-plan-button" href="/ops">
+            Open Ops
+          </a>
+        </section>
+
         <section className="workspace-stats" aria-label="Workspace stats">
           <article>
             <strong>{dashboard.stats.activeCampaigns}</strong>
