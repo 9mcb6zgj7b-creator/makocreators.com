@@ -92,35 +92,27 @@ export function CampaignWizard() {
               <div className="campaign-message-bubble">
                 <p className="campaign-message-label">Mako Creator</p>
                 <h1>What kind of business are you running?</h1>
-                <p>
-                  Let&apos;s keep this simple. Choose the closest business type and I&apos;ll shape the campaign flow around it.
-                </p>
+                <p>I’ll tailor the campaign setup for your business and local market.</p>
               </div>
             </article>
 
-            <section className="campaign-choice-panel">
-              <p className="campaign-choice-heading">Step 1</p>
-              <div className="campaign-choice-grid">
+            <div className="campaign-reply-group">
+              <div className="campaign-quick-replies">
                 {businessOptions.map(option => (
                   <button
                     key={option}
                     type="button"
-                    className={`campaign-choice-card ${businessType === option ? "selected" : ""}`}
+                    className={`campaign-reply-chip ${businessType === option ? "selected" : ""}`}
                     onClick={() => chooseBusiness(option)}
                   >
-                    <strong>{option}</strong>
-                    <span>
-                      {option === "Others"
-                        ? "Type your business category below."
-                        : `Build a campaign for your ${option.toLowerCase()} business.`}
-                    </span>
+                    {option}
                   </button>
                 ))}
               </div>
 
               {businessType === "Others" ? (
-                <label className="campaign-other-field" htmlFor="custom-business-type">
-                  <span>Tell us your business type</span>
+                <label className="campaign-inline-field" htmlFor="custom-business-type">
+                  <span>Type your business</span>
                   <input
                     id="custom-business-type"
                     value={customBusinessType}
@@ -128,11 +120,11 @@ export function CampaignWizard() {
                       setCustomBusinessType(event.target.value);
                       setCity("");
                     }}
-                    placeholder="Example: roofing, dental clinic, med spa, pet grooming..."
+                    placeholder="Roofing, dental clinic, med spa, pet grooming..."
                   />
                 </label>
               ) : null}
-            </section>
+            </div>
 
             {resolvedBusinessType ? (
               <article className="campaign-message user">
@@ -151,27 +143,25 @@ export function CampaignWizard() {
                   <div className="campaign-message-bubble">
                     <p className="campaign-message-label">Mako Creator</p>
                     <h2>Which city are you starting with?</h2>
-                    <p>We&apos;re launching with Los Angeles first, then we&apos;ll expand to other major U.S. cities.</p>
+                    <p>We’re opening with Los Angeles first, then expanding to more U.S. cities.</p>
                   </div>
                 </article>
 
-                <section className="campaign-choice-panel city-panel">
-                  <p className="campaign-choice-heading">Step 2</p>
-                  <div className="campaign-city-grid">
+                <div className="campaign-reply-group">
+                  <div className="campaign-quick-replies">
                     {launchCities.map(option => (
                       <button
                         key={option}
                         type="button"
-                        className={`campaign-choice-card ${city === option ? "selected" : ""}`}
+                        className={`campaign-reply-chip ${city === option ? "selected" : ""}`}
                         onClick={() => setCity(option)}
                       >
-                        <strong>{option}</strong>
-                        <span>Start your creator campaign in this market.</span>
+                        {option}
                       </button>
                     ))}
                   </div>
-                  <p className="campaign-context-note">More cities will be added here as we expand the rollout.</p>
-                </section>
+                  <p className="campaign-context-note">More cities will appear here as we expand.</p>
+                </div>
               </>
             ) : null}
 
@@ -183,14 +173,29 @@ export function CampaignWizard() {
               </article>
             ) : null}
 
-            {resolvedBusinessType ? (
-              <div className="campaign-intake-actions">
-                <p>I&apos;ll use your business type and starting city to tailor the next questions and recommendations.</p>
-                <button type="button" className="campaign-start-button" disabled={!city} onClick={enterWizard}>
-                  Continue
-                </button>
-              </div>
+            {city ? (
+              <article className="campaign-message assistant campaign-next-message">
+                <div className="campaign-message-avatar" aria-hidden="true">
+                  <span>m</span>
+                </div>
+                <div className="campaign-message-bubble">
+                  <p className="campaign-message-label">Mako Creator</p>
+                  <p>Perfect. I’ll set up the next questions for a ${city} ${resolvedBusinessType.toLowerCase()} campaign.</p>
+                </div>
+              </article>
             ) : null}
+          </div>
+
+          <div className="campaign-composer-shell">
+            <div className="campaign-composer">
+              <div className="campaign-composer-copy">
+                <strong>Ready to continue</strong>
+                <span>We’ll use your answers to personalize the full campaign setup.</span>
+              </div>
+              <button type="button" className="campaign-start-button" disabled={!city} onClick={enterWizard}>
+                Continue
+              </button>
+            </div>
           </div>
         </section>
       </main>
