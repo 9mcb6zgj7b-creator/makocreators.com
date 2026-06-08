@@ -32,6 +32,7 @@ const launchCities = ["Los Angeles"];
 
 export function CampaignWizard() {
   const [mode, setMode] = useState<"intro" | "wizard">("intro");
+  const [introStep, setIntroStep] = useState(0);
   const [businessType, setBusinessType] = useState("Restaurant");
   const [customBusinessType, setCustomBusinessType] = useState("");
   const [city, setCity] = useState("");
@@ -49,11 +50,16 @@ export function CampaignWizard() {
 
   function goBack() {
     if (mode === "intro") {
+      if (introStep === 1) {
+        setIntroStep(0);
+        return;
+      }
       window.location.assign("/campaigns");
       return;
     }
     if (activeStep === 0) {
       setMode("intro");
+      setIntroStep(1);
       return;
     }
     setActiveStep(step => Math.max(step - 1, 0));
@@ -74,6 +80,16 @@ export function CampaignWizard() {
     setActiveStep(0);
   }
 
+  function continueIntro() {
+    if (introStep === 0) {
+      setIntroStep(1);
+      return;
+    }
+    enterWizard();
+  }
+
+  const introReady = introStep === 0 ? Boolean(resolvedBusinessType) : Boolean(city);
+
   if (mode === "intro") {
     return (
       <main className="campaign-intake">
@@ -84,68 +100,83 @@ export function CampaignWizard() {
         </header>
 
         <section className="campaign-intake-shell">
-          <div className="campaign-chat-thread" aria-label="Campaign setup conversation">
-            <article className="campaign-message assistant">
-              <div className="campaign-message-avatar" aria-hidden="true">
-                <span>m</span>
-              </div>
-              <div className="campaign-message-bubble">
-                <p className="campaign-message-label">Mako Creator</p>
-                <h1>What kind of business are you running?</h1>
-                <p>I’ll tailor the campaign setup for your business and local market.</p>
-              </div>
-            </article>
-
-            <div className="campaign-reply-group">
-              <div className="campaign-quick-replies">
-                {businessOptions.map(option => (
-                  <button
-                    key={option}
-                    type="button"
-                    className={`campaign-reply-chip ${businessType === option ? "selected" : ""}`}
-                    onClick={() => chooseBusiness(option)}
-                  >
-                    {option}
-                  </button>
-                ))}
-              </div>
-
-              {businessType === "Others" ? (
-                <label className="campaign-inline-field" htmlFor="custom-business-type">
-                  <span>Type your business</span>
-                  <input
-                    id="custom-business-type"
-                    value={customBusinessType}
-                    onChange={event => {
-                      setCustomBusinessType(event.target.value);
-                      setCity("");
-                    }}
-                    placeholder="Roofing, dental clinic, med spa, pet grooming..."
-                  />
-                </label>
-              ) : null}
-            </div>
-
-            {resolvedBusinessType ? (
-              <article className="campaign-message user">
-                <div className="campaign-message-bubble">
-                  <p>{resolvedBusinessType}</p>
-                </div>
-              </article>
-            ) : null}
-
-            {resolvedBusinessType ? (
-              <>
+          {introStep === 0 ? (
+            <>
+              <div className="campaign-chat-thread" aria-label="Campaign setup conversation">
                 <article className="campaign-message assistant">
                   <div className="campaign-message-avatar" aria-hidden="true">
                     <span>m</span>
                   </div>
                   <div className="campaign-message-bubble">
                     <p className="campaign-message-label">Mako Creator</p>
-                    <h2>Which city are you starting with?</h2>
+                    <h1>What kind of business are you running?</h1>
+                    <p>I’ll tailor the campaign setup around your business type.</p>
+                  </div>
+                </article>
+
+                <div className="campaign-reply-group">
+                  <div className="campaign-quick-replies">
+                    {businessOptions.map(option => (
+                      <button
+                        key={option}
+                        type="button"
+                        className={`campaign-reply-chip ${businessType === option ? "selected" : ""}`}
+                        onClick={() => chooseBusiness(option)}
+                      >
+                        {option}
+                      </button>
+                    ))}
+                  </div>
+
+                  {businessType === "Others" ? (
+                    <label className="campaign-inline-field" htmlFor="custom-business-type">
+                      <span>Type your business</span>
+                      <input
+                        id="custom-business-type"
+                        value={customBusinessType}
+                        onChange={event => {
+                          setCustomBusinessType(event.target.value);
+                          setCity("");
+                        }}
+                        placeholder="Roofing, dental clinic, med spa, pet grooming..."
+                      />
+                    </label>
+                  ) : null}
+                </div>
+              </div>
+
+              <div className="campaign-composer-shell">
+                <div className="campaign-composer">
+                  <div className="campaign-composer-copy">
+                    <strong>Selected business</strong>
+                    <span>{resolvedBusinessType || "Choose a business type to continue."}</span>
+                  </div>
+                  <button type="button" className="campaign-start-button" disabled={!introReady} onClick={continueIntro}>
+                    Continue
+                  </button>
+                </div>
+              </div>
+            </>
+          ) : null}
+
+          {introStep === 1 ? (
+            <>
+              <div className="campaign-chat-thread" aria-label="Campaign setup conversation">
+                <article className="campaign-message assistant">
+                  <div className="campaign-message-avatar" aria-hidden="true">
+                    <span>m</span>
+                  </div>
+                  <div className="campaign-message-bubble">
+                    <p className="campaign-message-label">Mako Creator</p>
+                    <h1>Which city are you starting with?</h1>
                     <p>We’re opening with Los Angeles first, then expanding to more U.S. cities.</p>
                   </div>
                 </article>
+
+                <div className="campaign-selection-summary">
+                  <span>Business</span>
+                  <strong>{resolvedBusinessType}</strong>
+                </div>
 
                 <div className="campaign-reply-group">
                   <div className="campaign-quick-replies">
@@ -162,41 +193,21 @@ export function CampaignWizard() {
                   </div>
                   <p className="campaign-context-note">More cities will appear here as we expand.</p>
                 </div>
-              </>
-            ) : null}
-
-            {city ? (
-              <article className="campaign-message user">
-                <div className="campaign-message-bubble">
-                  <p>{city}</p>
-                </div>
-              </article>
-            ) : null}
-
-            {city ? (
-              <article className="campaign-message assistant campaign-next-message">
-                <div className="campaign-message-avatar" aria-hidden="true">
-                  <span>m</span>
-                </div>
-                <div className="campaign-message-bubble">
-                  <p className="campaign-message-label">Mako Creator</p>
-                  <p>Perfect. I’ll set up the next questions for a ${city} ${resolvedBusinessType.toLowerCase()} campaign.</p>
-                </div>
-              </article>
-            ) : null}
-          </div>
-
-          <div className="campaign-composer-shell">
-            <div className="campaign-composer">
-              <div className="campaign-composer-copy">
-                <strong>Ready to continue</strong>
-                <span>We’ll use your answers to personalize the full campaign setup.</span>
               </div>
-              <button type="button" className="campaign-start-button" disabled={!city} onClick={enterWizard}>
-                Continue
-              </button>
-            </div>
-          </div>
+
+              <div className="campaign-composer-shell">
+                <div className="campaign-composer">
+                  <div className="campaign-composer-copy">
+                    <strong>Selected city</strong>
+                    <span>{city || "Choose a city to continue."}</span>
+                  </div>
+                  <button type="button" className="campaign-start-button" disabled={!introReady} onClick={continueIntro}>
+                    Continue
+                  </button>
+                </div>
+              </div>
+            </>
+          ) : null}
         </section>
       </main>
     );
