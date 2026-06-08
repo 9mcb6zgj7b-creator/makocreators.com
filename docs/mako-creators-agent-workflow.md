@@ -25,6 +25,16 @@ flowchart TD
   M --> N["Human executes approved external action"]
 ```
 
+## Current Implementation Surface
+
+The MVP cockpit now reads from a shared overview layer:
+
+- Page: `/ops`
+- API: `GET /api/ops/overview`
+- Server helper: `getOpsOverview(workspaceId)`
+
+The helper returns preview data in local no-database mode and uses existing workspace counts when a database is configured. This is intentionally not an external automation surface yet; it prepares and displays work, but does not execute external actions.
+
 ## Steps
 
 ### 1. Intake

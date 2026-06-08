@@ -19,6 +19,22 @@ The current Prisma schema already supports the core backbone:
 
 ## MVP Operational Concepts
 
+## Current MVP Data Layer
+
+The Creator Ops Cockpit is backed by:
+
+- `src/lib/ops-overview.ts`
+- `GET /api/ops/overview`
+- `src/app/ops/page.tsx`
+
+Current behavior:
+
+- Without `DATABASE_URL`, the page and API return preview data for the MVP cockpit.
+- With `DATABASE_URL`, the metrics start reading existing workspace counts from creator leads, match runs, outreach drafts, and dashboard tasks.
+- Creator recommendations, approval examples, pipeline stages, and agent workflow still use preview data until live scoring and approval persistence are connected.
+
+This keeps the prototype runnable while giving the frontend, API, and future agent code one shared overview contract.
+
 ### Creator Scoring
 
 Current home:

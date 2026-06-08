@@ -25,6 +25,7 @@ export async function GET() {
       },
       navigation: [
         { key: "home", label: "Home", href: "/dashboard" },
+        { key: "ops", label: "Ops", href: "/ops" },
         { key: "creators", label: "Creators", href: "/creators" },
         { key: "campaigns", label: "Campaigns", href: "/campaigns" },
         { key: "reports", label: "Reports", href: "/reports" },
