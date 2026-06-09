@@ -210,8 +210,14 @@ export async function getOpsOverview(workspaceId: string): Promise<OpsOverview> 
     return buildPreviewOverview("preview");
   }
 
-  const [creatorLeadCount, matchRunCount, draftCount, openTaskCount, approvalResult, creatorRecommendations, workspaceDrafts] = await Promise.all([
+  const [creatorLeadCount, contactableCreatorLeadCount, matchRunCount, draftCount, openTaskCount, approvalResult, creatorRecommendations, workspaceDrafts] = await Promise.all([
     prisma.creatorLead.count({ where: { workspaceId } }),
+    prisma.creatorLead.count({
+      where: {
+        workspaceId,
+        contactEmail: { not: null },
+      },
+    }),
     prisma.creatorMatchRun.count({ where: { workspaceId } }),
     prisma.outreachDraft.count({ where: { workspaceId, status: "DRAFT" } }),
     prisma.dashboardTask.count({
@@ -233,7 +239,7 @@ export async function getOpsOverview(workspaceId: string): Promise<OpsOverview> 
   const fallbackDraftSource = creatorSource === "workspace" ? "derived" : "preview";
   const draftSource: OpsDataSource = workspaceDrafts.length ? "workspace" : fallbackDraftSource;
   const drafts = workspaceDrafts.length ? workspaceDrafts : buildDraftsFromCreators(creators, fallbackDraftSource);
-  const contactableCreators = creators.filter(creator => Boolean(creator.contactEmail)).length;
+  const contactableCreators = contactableCreatorLeadCount || creators.filter(creator => Boolean(creator.contactEmail)).length;
 
   return {
     ...overview,

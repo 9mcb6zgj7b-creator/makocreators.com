@@ -67,11 +67,29 @@ export async function POST(req: NextRequest) {
           notes: input.notes,
           rawInput: input.rawInput ?? {},
         };
+        const updateData = {
+          source: data.source,
+          status: data.status,
+          platform: data.platform,
+          displayName: data.displayName || undefined,
+          handle: data.handle || undefined,
+          city: data.city || undefined,
+          categories: data.categories.length ? data.categories : undefined,
+          followers: data.followers ?? undefined,
+          avgViews: data.avgViews ?? undefined,
+          contactEmail: data.contactEmail || undefined,
+          contactPhone: data.contactPhone || undefined,
+          contactNotes: data.contactNotes || undefined,
+          priceMin: data.priceMin ?? undefined,
+          priceMax: data.priceMax ?? undefined,
+          notes: data.notes || undefined,
+          rawInput: data.rawInput,
+        };
 
         if (existingId) {
           return prisma.creatorLead.update({
             where: { id: existingId },
-            data,
+            data: updateData,
           });
         }
 
@@ -82,7 +100,7 @@ export async function POST(req: NextRequest) {
               profileUrl: input.profileUrl,
             },
           },
-          update: data,
+          update: updateData,
           create: {
             workspaceId: workspace.id,
             createdById: user.id,
