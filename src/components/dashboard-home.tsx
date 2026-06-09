@@ -26,9 +26,14 @@ export function DashboardHome({ user, dashboard }: { user: AppShellUser; dashboa
             <h1>Welcome back, {firstName}!</h1>
             <p>Your creator campaign workspace is ready.</p>
           </div>
-          <a className="new-plan-button" href="/campaigns/new">
-            New Campaign
-          </a>
+          <div className="dashboard-primary-actions" aria-label="Primary workspace actions">
+            <a className="new-plan-button secondary" href="/creators/import">
+              Import Creators
+            </a>
+            <a className="new-plan-button" href="/campaigns/new">
+              New Campaign
+            </a>
+          </div>
         </div>
 
         <section className="operation-panel" aria-labelledby="operation-title">
@@ -79,6 +84,10 @@ export function DashboardHome({ user, dashboard }: { user: AppShellUser; dashboa
             <span className="section-eyebrow">MVP workspace</span>
             <h2 id="ops-entry-title">Creator Ops Cockpit</h2>
             <p>Review creator scores, seeding versus AI content recommendations, approval gates, safe drafts, and the latest agent workflow.</p>
+            <div className="ops-entry-actions" aria-label="Creator ops shortcuts">
+              <a href="/creators/import">Import creator links or spreadsheet</a>
+              <a href="/creators">Open Creator Workspace</a>
+            </div>
             <div className="ops-entry-stats" aria-label="Creator ops status">
               <span>
                 <strong>{dashboard.stats.pendingApprovals}</strong>

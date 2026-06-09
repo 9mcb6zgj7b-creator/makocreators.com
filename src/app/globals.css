@@ -423,6 +423,41 @@ h2 {
   box-shadow: 0 10px 22px rgba(255, 90, 31, 0.18);
 }
 
+.dashboard-primary-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.new-plan-button.secondary {
+  border: 1px solid #fed7aa;
+  background: #fff7ed;
+  color: var(--orange);
+  box-shadow: none;
+}
+
+.ops-entry-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 14px 0 0;
+}
+
+.ops-entry-actions a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 34px;
+  border: 1px solid #fed7aa;
+  border-radius: 999px;
+  background: #fff7ed;
+  padding: 0 12px;
+  color: var(--orange);
+  font-size: 13px;
+  font-weight: 950;
+}
+
 .login-page {
   min-height: 100vh;
   display: grid;
