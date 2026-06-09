@@ -2268,6 +2268,22 @@ h2 {
   font-weight: 900;
 }
 
+.ops-score.pending {
+  min-width: 98px;
+  padding: 0 12px;
+  background: #eef2f7;
+  color: #475467;
+  font-size: 12px;
+}
+
+.ops-score.contact {
+  min-width: 96px;
+  padding: 0 12px;
+  background: #e8f7ee;
+  color: #166534;
+  font-size: 12px;
+}
+
 .ops-chip-row {
   display: flex;
   flex-wrap: wrap;

@@ -153,19 +153,20 @@ Task creation example:
 
 The authenticated `/creators/import` page connects to the creator lead APIs. In local no-database preview mode, the page remains visible for workflow review but warns that imports need `DATABASE_URL` before leads can be saved.
 
-Direct link submission:
+Direct contact submission:
 
 ```json
 {
-  "url": "https://www.instagram.com/example_creator",
+  "email": "creator@example.com",
   "notes": "Good LA restaurant content"
 }
 ```
 
-Bulk link submission:
+Bulk contact submission can include emails and profile links:
 
 ```json
 {
+  "emails": ["creator@example.com", "second@example.com"],
   "urls": [
     "https://www.instagram.com/example_creator",
     "https://www.tiktok.com/@example_creator"
@@ -179,6 +180,7 @@ Spreadsheet import uses `multipart/form-data` with one field:
 
 Recognized spreadsheet columns can be English or Chinese, including:
 
+- `邮箱` / `联系邮箱` / `email`
 - `链接` / `主页链接` / `url`
 - `平台` / `platform`
 - `达人名字` / `name`

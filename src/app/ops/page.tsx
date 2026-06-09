@@ -62,8 +62,8 @@ export default async function OpsPage() {
           <section className="ops-panel ops-panel-large" aria-labelledby="recommendations-title">
             <div className="ops-panel-header">
               <div>
-                <h2 id="recommendations-title">Recommended next moves</h2>
-                <p>Ranked by fit score, approval state, and campaign readiness.</p>
+                <h2 id="recommendations-title">Creator contact queue</h2>
+                <p>Save creator emails first, then prepare safe outreach drafts for human approval.</p>
               </div>
               <SourcePill source={overview.creatorSource} />
             </div>
@@ -73,7 +73,9 @@ export default async function OpsPage() {
                   <div>
                     <div className="ops-card-title-row">
                       <strong>{creator.name}</strong>
-                      <span className="ops-score">{creator.score}</span>
+                      <span className={creator.contactEmail ? "ops-score contact" : "ops-score pending"}>
+                        {creator.contactEmail ? "Email saved" : "Needs email"}
+                      </span>
                     </div>
                     <p>{creator.driver}</p>
                     <div className="ops-chip-row">
@@ -101,13 +103,13 @@ export default async function OpsPage() {
 
         <div className="ops-grid">
           <section className="ops-panel ops-panel-large" aria-labelledby="scoring-title">
-            <h2 id="scoring-title">Creator scoring</h2>
+            <h2 id="scoring-title">Creator contacts</h2>
             <div className="ops-table" role="table" aria-label="Creator scores">
               <div className="ops-table-head" role="row">
                 <span>Creator</span>
-                <span>Audience</span>
-                <span>Path</span>
-                <span>Risk</span>
+                <span>Contact</span>
+                <span>Status</span>
+                <span>Next step</span>
               </div>
               {overview.creators.map(creator => (
                 <div className="ops-table-row" role="row" key={creator.handle}>
@@ -115,7 +117,7 @@ export default async function OpsPage() {
                     <strong>{creator.name}</strong>
                     <small>{creator.handle} · {creator.channel}</small>
                   </span>
-                  <span>{creator.audience}</span>
+                  <span>{creator.contactEmail || "Email needed"}</span>
                   <span className={`ops-chip ${creator.pathClass}`}>{creator.path}</span>
                   <span>{creator.risk}</span>
                 </div>

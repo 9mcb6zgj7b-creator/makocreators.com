@@ -61,25 +61,25 @@ Outputs:
 - Normalized creator records.
 - Missing-data warnings.
 
-### 2. Creator Scoring
+### 2. Creator Contact Readiness
 
 Mako evaluates:
 
-- Audience fit.
-- Content quality.
-- Brand safety.
-- Product relevance.
-- Engagement signal.
-- Authenticity need.
+- Whether a creator email is available.
+- Whether a profile link needs manual contact research.
+- Whether notes include enough campaign context for a safe outreach draft.
+- Whether any sensitive next step must be approval-gated.
+
+Fit scoring is intentionally parked until Mako has a stable creator data source or user-provided performance fields.
 
 ### 3. Collaboration Path Selection
 
 Mako recommends:
 
-- Product seeding when authentic experience is required.
-- AI content collaboration when the output can be a script, hook, or video draft without claiming the creator used the product.
-- Hold when data is incomplete or risk is unclear.
-- Reject when fit or safety is poor.
+- Ready for outreach draft when a creator email is saved.
+- Needs creator email when only a profile link exists.
+- Hold when contact context is incomplete or risk is unclear.
+- Future scoring recommendations only after a stable data source is connected.
 
 ### 4. Drafting
 

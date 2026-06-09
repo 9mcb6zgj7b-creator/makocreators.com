@@ -28,10 +28,10 @@ The core MVP path is:
 
 The user should be able to:
 
-- See which creators are strongest fits and why.
-- Understand whether Mako recommends product seeding or AI content collaboration.
-- Review outreach and concept drafts before any external send.
-- Track creators across pipeline stages.
+- Import creator emails or profile links.
+- See which creators are contactable now and which still need an email.
+- Prepare safe outreach drafts before any external send.
+- Track creators across contact, draft, and approval stages.
 - Inspect approval items and blocked actions.
 - Understand what the agent did during a run.
 
@@ -61,31 +61,26 @@ Purpose:
 
 Includes:
 
-- KPI strip for creator coverage, high-fit creators, approval load, and AI collaboration candidates.
-- Recommended next moves.
-- Creator scoring table.
+- KPI strip for creator coverage, contactable creators, approval load, and open ops tasks.
+- Creator contact queue.
+- Creator contacts table.
 - Campaign pipeline.
 - Approval queue.
 - Agent run timeline.
 
-### 2. Creator Scoring
+### 2. Creator Contact Intake
 
 Inputs:
 
-- Audience fit.
-- Content quality.
-- Brand safety.
-- Product relevance.
-- Engagement signal.
-- Authenticity requirement.
-- Prior relationship status.
+- Creator email addresses.
+- Optional profile links.
+- Optional names, categories, contact notes, pricing, and campaign context from spreadsheet import.
 
 Outputs:
 
-- Fit score from 0 to 100.
-- Recommendation: product seeding, AI content collaboration, hold, or reject.
-- Score drivers.
-- Risk flags.
+- Contactable creators ready for outreach drafting.
+- Creator leads that still need an email.
+- Contact notes and source records for the workspace.
 
 ### 3. Collaboration Path
 
@@ -113,9 +108,9 @@ When the workspace has no pending approvals, `/ops` shows an empty queue. Demo a
 
 Mako prepares the work package:
 
-1. Normalize creator profile.
-2. Score creator fit.
-3. Select collaboration path.
+1. Normalize creator contact or profile link.
+2. Identify whether a creator email is available.
+3. Prepare internal outreach context.
 4. Draft internal outreach or concept.
 5. Run guardrail scan.
 6. Route sensitive actions to approval.
@@ -124,7 +119,7 @@ Mako prepares the work package:
 ## Success Metrics
 
 - Time from shortlist to approval-ready plan: under 20 minutes.
-- At least 80% of high-fit creators have a clear next action.
+- At least 80% of imported creator emails have a clear next action.
 - 100% of sensitive actions are routed to approval.
 - Zero drafts include payment promises or false first-person product claims.
 
@@ -135,7 +130,7 @@ Included now:
 - `/ops` local prototype inside the real Next.js project.
 - Preview seeded data with a shared overview data layer.
 - Persistent `Approval` model and internal approval API.
-- Workspace creator leads mapped into ops recommendations when real lead data exists.
+- Workspace creator leads mapped into a contact-first ops queue when real lead data exists.
 - Workspace outreach drafts shown in the safe draft package when real drafts exist.
 - Workspace approval queue with approve, needs changes, reject, and empty states.
 - Section-level source labels for workspace data, derived draft suggestions, and preview fallback data.
@@ -145,9 +140,9 @@ Included now:
 Deferred:
 
 - Applying the approval table to the live database.
-- Creating real approval items from scoring and draft generation workflows.
-- Live scoring jobs.
-- Creator import to ops cockpit linkage.
+- Creating real approval items from draft generation workflows.
+- Live scoring jobs and third-party creator data enrichment.
+- Restoring fit score UI after a stable data source is connected.
 - External messaging integrations.
 - Fulfillment integrations.
 - Usage-rights workflow.

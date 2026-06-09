@@ -11,16 +11,18 @@ export const creatorLeadStatusSchema = z.enum([
 ]);
 
 export const creatorLeadLinkSchema = z.object({
-  url: z.string().url(),
+  url: z.string().min(1),
   notes: z.string().max(4000).optional(),
 });
 
 export const creatorLeadLinksSchema = z.object({
-  urls: z.array(z.string().url()).min(1).max(100).optional(),
-  url: z.string().url().optional(),
+  urls: z.array(z.string().min(1)).min(1).max(100).optional(),
+  url: z.string().min(1).optional(),
+  emails: z.array(z.string().email()).min(1).max(200).optional(),
+  email: z.string().email().optional(),
   notes: z.string().max(4000).optional(),
-}).refine(value => value.url || value.urls?.length, {
-  message: "Please provide at least one creator profile or video link.",
+}).refine(value => value.url || value.urls?.length || value.email || value.emails?.length, {
+  message: "Please provide at least one creator email or profile link.",
 });
 
 export type CreatorLeadInput = {
@@ -94,7 +96,8 @@ export function detectPlatform(url: string): Platform {
 
 export function excelRowToCreatorLead(row: Record<string, unknown>): CreatorLeadInput | null {
   const mapped = mapRow(row);
-  const profileUrl = cleanText(mapped.profileUrl);
+  const contactEmail = normalizeEmail(cleanText(mapped.contactEmail));
+  const profileUrl = cleanText(mapped.profileUrl) || (contactEmail ? `mailto:${contactEmail}` : null);
   if (!profileUrl || !isProbablyUrl(profileUrl)) return null;
 
   const platform = parsePlatform(cleanText(mapped.platform)) ?? detectPlatform(profileUrl);
@@ -108,7 +111,7 @@ export function excelRowToCreatorLead(row: Record<string, unknown>): CreatorLead
     categories: splitList(cleanText(mapped.categories)),
     followers: parseNumber(mapped.followers),
     avgViews: parseNumber(mapped.avgViews),
-    contactEmail: cleanText(mapped.contactEmail),
+    contactEmail,
     contactPhone: cleanText(mapped.contactPhone),
     contactNotes: cleanText(mapped.contactNotes),
     priceMin: parseNumber(mapped.priceMin),
@@ -153,6 +156,7 @@ function normalizeHeader(value: string) {
 
 function normalizeUrl(value: string) {
   const trimmed = value.trim();
+  if (/^[a-z][a-z0-9+.-]*:/i.test(trimmed)) return trimmed;
   if (/^https?:\/\//i.test(trimmed)) return trimmed;
   return `https://${trimmed}`;
 }
@@ -164,6 +168,11 @@ function isProbablyUrl(value: string) {
   } catch {
     return false;
   }
+}
+
+export function normalizeEmail(value: string | null) {
+  const email = value?.trim().toLowerCase();
+  return email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) ? email : null;
 }
 
 function cleanText(value: unknown) {

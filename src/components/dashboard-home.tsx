@@ -83,9 +83,9 @@ export function DashboardHome({ user, dashboard }: { user: AppShellUser; dashboa
           <div>
             <span className="section-eyebrow">MVP workspace</span>
             <h2 id="ops-entry-title">Creator Ops Cockpit</h2>
-            <p>Review creator scores, seeding versus AI content recommendations, approval gates, safe drafts, and the latest agent workflow.</p>
+            <p>Review saved creator contacts, prepare safe outreach drafts, and route every external send through human approval.</p>
             <div className="ops-entry-actions" aria-label="Creator ops shortcuts">
-              <a href="/creators/import">Import creator links or spreadsheet</a>
+              <a href="/creators/import">Import creator emails or spreadsheet</a>
               <a href="/creators">Open Creator Workspace</a>
             </div>
             <div className="ops-entry-stats" aria-label="Creator ops status">

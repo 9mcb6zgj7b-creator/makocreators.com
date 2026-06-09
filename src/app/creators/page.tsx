@@ -13,8 +13,8 @@ const intakePrompts = [
   {
     number: "1.2",
     title: "Reference creator profile links",
-    description: "Optional Instagram, TikTok, YouTube, or creator website links.",
-    placeholder: "https://www.instagram.com/example",
+    description: "Best: creator email addresses. Optional: Instagram, TikTok, YouTube, or creator website links.",
+    placeholder: "creator@example.com or https://www.instagram.com/example",
   },
   {
     number: "1.3",
@@ -48,7 +48,7 @@ export default async function CreatorsPage() {
         <div className="page-heading-row">
           <div>
             <h1>Creator Workspace</h1>
-            <p>Find, import, review, and shortlist creators for local service campaigns.</p>
+            <p>Import creator emails, review outreach readiness, and prepare safe campaign follow-ups.</p>
           </div>
           <a className="new-plan-button" href="/creators/import">
             Import Creators
@@ -63,7 +63,7 @@ export default async function CreatorsPage() {
               </span>
               <div>
                 <h2 id="creator-agent-title">AI agent intake</h2>
-                <p>Answer each prompt in order. The agent uses this to build your creator profile.</p>
+              <p>Answer each prompt in order. The agent uses this to prepare creator outreach context.</p>
               </div>
             </div>
 
@@ -87,13 +87,13 @@ export default async function CreatorsPage() {
 
           <aside className="creator-side-panel" aria-label="Creator intake tools">
             <article>
-              <strong>Direct links</strong>
-              <p>Paste Instagram, TikTok, YouTube, or other creator profile links for analysis.</p>
-              <a href="/creators/import">Add profile links</a>
+              <strong>Creator emails</strong>
+              <p>Paste creator emails when you have them. Email-first contacts are ready for outreach drafting.</p>
+              <a href="/creators/import">Add creator emails</a>
             </article>
             <article>
               <strong>Spreadsheet import</strong>
-              <p>Upload an Excel or CSV list when you already have creators collected manually.</p>
+              <p>Upload an Excel or CSV list with emails, names, profile links, notes, and campaign context.</p>
               <a href="/creators/import">Upload spreadsheet</a>
             </article>
             <article>

@@ -34,12 +34,12 @@ export function CreatorImportForm({ databaseConfigured }: { databaseConfigured: 
       return;
     }
 
-    const urls = parseLinks(links);
+    const contacts = parseCreatorContacts(links);
     setLinkStatus("");
     setLinkError("");
 
-    if (!urls.length) {
-      setLinkError("Add at least one creator profile link.");
+    if (!contacts.urls.length && !contacts.emails.length) {
+      setLinkError("Add at least one creator email or profile link.");
       return;
     }
 
@@ -48,16 +48,17 @@ export function CreatorImportForm({ databaseConfigured }: { databaseConfigured: 
       const res = await fetch("/api/creator-leads", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ urls, notes: notes || undefined }),
+        body: JSON.stringify({ urls: contacts.urls, emails: contacts.emails, notes: notes || undefined }),
       });
       const data = (await res.json()) as LinkImportResponse & ApiErrorResponse;
-      if (!res.ok) throw new Error(formatApiError(data.error) || "Creator links could not be imported.");
+      if (!res.ok) throw new Error(formatApiError(data.error) || "Creator contacts could not be imported.");
 
-      setLinkStatus(`${data.count ?? urls.length} creator link${(data.count ?? urls.length) === 1 ? "" : "s"} queued for review.`);
+      const importedCount = data.count ?? contacts.urls.length + contacts.emails.length;
+      setLinkStatus(`${importedCount} creator contact${importedCount === 1 ? "" : "s"} saved for outreach review.`);
       setLinks("");
       setNotes("");
     } catch (caught) {
-      setLinkError(caught instanceof Error ? caught.message : "Creator links could not be imported.");
+      setLinkError(caught instanceof Error ? caught.message : "Creator contacts could not be imported.");
     } finally {
       setIsSubmittingLinks(false);
     }
@@ -112,16 +113,16 @@ export function CreatorImportForm({ databaseConfigured }: { databaseConfigured: 
       <div className="creator-import-grid">
         <form className="creator-import-panel" onSubmit={submitLinks}>
           <div>
-            <span className="section-eyebrow">Direct links</span>
-            <h2>Paste creator profile links</h2>
-            <p>Instagram, TikTok, YouTube, Xiaohongshu, website, or creator profile URLs can be queued as creator leads.</p>
+            <span className="section-eyebrow">Direct contacts</span>
+            <h2>Paste creator emails or profile links</h2>
+            <p>Email is best for the MVP. Profile links can still be saved as leads while the team finds contact details.</p>
           </div>
 
           <label>
-            <span>Profile links</span>
+            <span>Creator emails or links</span>
             <textarea
               rows={9}
-              placeholder="https://www.instagram.com/example&#10;https://www.tiktok.com/@example"
+              placeholder="creator@example.com&#10;https://www.instagram.com/example&#10;https://www.tiktok.com/@example"
               value={links}
               onChange={event => setLinks(event.target.value)}
             />
@@ -130,14 +131,14 @@ export function CreatorImportForm({ databaseConfigured }: { databaseConfigured: 
           <label>
             <span>Notes</span>
             <input
-              placeholder="Optional campaign, city, category, or review context"
+              placeholder="Optional campaign, category, offer, or outreach context"
               value={notes}
               onChange={event => setNotes(event.target.value)}
             />
           </label>
 
           <button className="generate-button" type="submit" disabled={isSubmittingLinks || !databaseConfigured}>
-            {isSubmittingLinks ? "Queueing..." : databaseConfigured ? "Queue Links" : "Database Required"}
+            {isSubmittingLinks ? "Saving..." : databaseConfigured ? "Save Contacts" : "Database Required"}
           </button>
           {linkStatus ? (
             <p className="form-message">
@@ -151,7 +152,7 @@ export function CreatorImportForm({ databaseConfigured }: { databaseConfigured: 
           <div>
             <span className="section-eyebrow">Spreadsheet</span>
             <h2>Upload a creator sheet</h2>
-            <p>CSV, XLS, and XLSX imports can include links, platform, name, city, category, followers, views, contact, pricing, and notes.</p>
+            <p>CSV, XLS, and XLSX imports should include creator emails when available. Links, names, categories, contact notes, pricing, and notes are also supported.</p>
           </div>
 
           <label className="file-import-box">
@@ -180,11 +181,16 @@ export function CreatorImportForm({ databaseConfigured }: { databaseConfigured: 
   );
 }
 
-function parseLinks(value: string) {
-  return value
+function parseCreatorContacts(value: string) {
+  const items = value
     .split(/[\n,\s]+/)
     .map(item => item.trim())
     .filter(Boolean);
+
+  const emails = Array.from(new Set(items.filter(item => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(item.toLowerCase())).map(item => item.toLowerCase())));
+  const urls = Array.from(new Set(items.filter(item => !emails.includes(item.toLowerCase()))));
+
+  return { emails, urls };
 }
 
 function formatApiError(error: ApiErrorResponse["error"]) {

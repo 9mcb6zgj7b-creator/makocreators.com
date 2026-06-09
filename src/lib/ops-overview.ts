@@ -9,7 +9,8 @@ export type OpsCreator = {
   handle: string;
   channel: string;
   audience: string;
-  score: number;
+  score: number | null;
+  contactEmail?: string | null;
   path: string;
   pathClass: OpsPathClass;
   stage: string;
@@ -232,8 +233,7 @@ export async function getOpsOverview(workspaceId: string): Promise<OpsOverview> 
   const fallbackDraftSource = creatorSource === "workspace" ? "derived" : "preview";
   const draftSource: OpsDataSource = workspaceDrafts.length ? "workspace" : fallbackDraftSource;
   const drafts = workspaceDrafts.length ? workspaceDrafts : buildDraftsFromCreators(creators, fallbackDraftSource);
-  const highFitCreators = creators.filter(creator => creator.score >= 80).length;
-  const aiCandidates = creators.filter(creator => creator.pathClass === "ai").length;
+  const contactableCreators = creators.filter(creator => Boolean(creator.contactEmail)).length;
 
   return {
     ...overview,
@@ -250,9 +250,9 @@ export async function getOpsOverview(workspaceId: string): Promise<OpsOverview> 
         note: creatorLeadCount ? "Workspace creator leads" : "Demo shortlist coverage",
       },
       {
-        label: "High-fit creators",
-        value: highFitCreators,
-        note: matchRunCount ? "Latest scoring signal" : "Score 80 or higher",
+        label: "Contactable creators",
+        value: contactableCreators,
+        note: "Email available for outreach drafting",
       },
       {
         label: "Pending approvals",
@@ -260,13 +260,13 @@ export async function getOpsOverview(workspaceId: string): Promise<OpsOverview> 
         note: approvalResult.unavailable ? "Preview human review queue" : "Workspace human review queue",
       },
       {
-        label: "AI collab candidates",
-        value: aiCandidates,
-        note: "No false first-person claims",
+        label: "Open ops tasks",
+        value: openTaskCount,
+        note: "Follow-ups and review work",
       },
     ],
     pipeline: [
-      { label: "Scored", count: creatorLeadCount || creators.length },
+      { label: "Contacts saved", count: contactableCreators },
       { label: "Draft ready", count: draftCount },
       { label: "Needs approval", count: approvalCount },
       { label: "Open ops tasks", count: openTaskCount },
@@ -307,6 +307,7 @@ async function getCreatorRecommendations(workspaceId: string): Promise<OpsCreato
       displayName: true,
       handle: true,
       platform: true,
+      profileUrl: true,
       city: true,
       categories: true,
       followers: true,
@@ -319,10 +320,10 @@ async function getCreatorRecommendations(workspaceId: string): Promise<OpsCreato
   });
 
   return leads.map(lead => {
-    const score = scoreCreatorLead(lead);
+    const score = null;
     const hasContact = Boolean(lead.contactEmail || lead.contactPhone);
-    const pathClass: OpsPathClass = score < 70 ? "hold" : hasContact ? "seed" : "ai";
-    const path = pathClass === "seed" ? "Product seeding" : pathClass === "ai" ? "AI content collab" : "Hold";
+    const pathClass: OpsPathClass = hasContact ? "neutral" : "hold";
+    const path = hasContact ? "Ready for outreach draft" : "Needs creator email";
     const name = lead.displayName || lead.handle || "Unnamed creator";
     const handle = lead.handle || `lead-${lead.id.slice(0, 6)}`;
     const categoryText = lead.categories.length ? lead.categories.join(", ") : "General creator";
@@ -333,11 +334,12 @@ async function getCreatorRecommendations(workspaceId: string): Promise<OpsCreato
       channel: formatApprovalType(lead.platform),
       audience: lead.city ? `${lead.city} ${categoryText}` : categoryText,
       score,
+      contactEmail: lead.contactEmail,
       path,
       pathClass,
-      stage: formatApprovalType(lead.status),
+      stage: hasContact ? "Contact saved" : "Email missing",
       risk: getCreatorRisk(pathClass, hasContact),
-      driver: buildCreatorDriver(score, categoryText, lead.followers, lead.avgViews),
+      driver: buildContactDriver(categoryText, lead.contactEmail, lead.profileUrl),
       draft: buildCreatorDraft(name, pathClass),
     };
   });
@@ -391,16 +393,49 @@ function scoreCreatorLead(lead: {
   return Math.max(40, Math.min(96, score));
 }
 
+function hasCreatorEnrichmentSignal(lead: {
+  categories: string[];
+  followers: number | null;
+  avgViews: number | null;
+  status: string;
+  contactEmail: string | null;
+  contactPhone: string | null;
+}) {
+  return Boolean(
+    lead.categories.length ||
+      lead.followers ||
+      lead.avgViews ||
+      lead.contactEmail ||
+      lead.contactPhone ||
+      lead.status === "ANALYZED" ||
+      lead.status === "APPROVED" ||
+      lead.status === "NEEDS_REVIEW",
+  );
+}
+
 function getCreatorRisk(pathClass: OpsPathClass, hasContact: boolean) {
-  if (pathClass === "hold") return "Brand safety or missing signal review needed";
+  if (pathClass === "hold") return "Creator email is needed before outreach can be prepared";
   if (pathClass === "ai") return "Usage rights and false first-person claims gated";
-  return hasContact ? "Sample shipment approval required" : "Contact review required before seeding";
+  return hasContact ? "Human approval required before any external send" : "Contact review required before seeding";
 }
 
 function buildCreatorDriver(score: number, categoryText: string, followers: number | null, avgViews: number | null) {
   const reach = followers ? `${followers.toLocaleString()} followers` : "unknown follower count";
   const views = avgViews ? `${avgViews.toLocaleString()} average views` : "limited view signal";
   return `${categoryText} fit with ${reach}, ${views}, and an internal readiness score of ${score}.`;
+}
+
+function buildPendingEnrichmentDriver(categoryText: string) {
+  return `${categoryText} imported. Mako is waiting for creator enrichment before assigning a fit score or collaboration recommendation.`;
+}
+
+function buildContactDriver(categoryText: string, contactEmail: string | null, profileUrl: string) {
+  if (contactEmail) {
+    return `${categoryText} contact saved at ${contactEmail}. Prepare a safe outreach draft, then route sending for human approval.`;
+  }
+
+  const source = profileUrl.startsWith("mailto:") ? "creator email" : "profile link";
+  return `${categoryText} ${source} saved, but no creator email is available yet. Add an email before outreach drafting.`;
 }
 
 function buildCreatorDraft(name: string, pathClass: OpsPathClass) {
@@ -446,7 +481,7 @@ function formatRiskLevel(risk: string): OpsRiskLevel {
 }
 
 function buildPreviewOverview(source: OpsOverview["source"]): OpsOverview {
-  const highFit = previewCreators.filter(creator => creator.score >= 80).length;
+  const highFit = previewCreators.filter(creator => (creator.score ?? 0) >= 80).length;
   const aiCandidates = previewCreators.filter(creator => creator.path === "AI content collab").length;
 
   return {

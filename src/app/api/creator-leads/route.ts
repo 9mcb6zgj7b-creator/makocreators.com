@@ -6,6 +6,7 @@ import {
   creatorLeadLinksSchema,
   creatorLeadStatusSchema,
   dedupeCreatorLeadInputs,
+  normalizeEmail,
   normalizeCreatorLeadInput,
 } from "@/lib/creator-leads";
 import { prisma } from "@/lib/db";
@@ -41,19 +42,32 @@ export async function POST(req: NextRequest) {
   try {
     const { user, workspace } = await getRequestContext();
     const body = creatorLeadLinksSchema.parse(await req.json());
-    const urls = dedupeCreatorLeadInputs(
-      [...(body.urls ?? []), ...(body.url ? [body.url] : [])].map(url =>
-        normalizeCreatorLeadInput({
-          profileUrl: url,
-          source: "LINK",
-          notes: body.notes,
-          rawInput: { url, notes: body.notes ?? null },
-        })
-      )
+    const profileInputs = [...(body.urls ?? []), ...(body.url ? [body.url] : [])].map(url =>
+      normalizeCreatorLeadInput({
+        profileUrl: url,
+        source: "LINK",
+        notes: body.notes,
+        rawInput: { url, notes: body.notes ?? null },
+      })
     );
+    const emailInputs = [...(body.emails ?? []), ...(body.email ? [body.email] : [])]
+      .map(normalizeEmail)
+      .filter((email): email is string => email !== null)
+      .map(email =>
+        normalizeCreatorLeadInput({
+          profileUrl: `mailto:${email}`,
+          source: "MANUAL",
+          displayName: email.split("@")[0],
+          handle: email.split("@")[0],
+          contactEmail: email,
+          notes: body.notes,
+          rawInput: { email, notes: body.notes ?? null },
+        })
+      );
+    const inputs = dedupeCreatorLeadInputs([...emailInputs, ...profileInputs]);
 
     const leads = await prisma.$transaction(
-      urls.map(input =>
+      inputs.map(input =>
         prisma.creatorLead.upsert({
           where: {
             workspaceId_profileUrl: {
@@ -63,20 +77,24 @@ export async function POST(req: NextRequest) {
           },
           update: {
             platform: input.platform,
+            displayName: input.displayName,
             handle: input.handle,
+            contactEmail: input.contactEmail,
             notes: input.notes,
             status: "PENDING_ANALYSIS",
-            source: "LINK",
+            source: input.source,
             rawInput: input.rawInput ?? {},
           },
           create: {
             workspaceId: workspace.id,
             createdById: user.id,
-            source: "LINK",
+            source: input.source,
             status: "PENDING_ANALYSIS",
             platform: input.platform!,
             profileUrl: input.profileUrl,
+            displayName: input.displayName,
             handle: input.handle,
+            contactEmail: input.contactEmail,
             categories: [],
             notes: input.notes,
             rawInput: input.rawInput ?? {},
