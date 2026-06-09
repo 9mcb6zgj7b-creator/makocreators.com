@@ -124,6 +124,7 @@ enum PersonaStatus {
 
 model CreatorLead {
   id          String            @id @default(cuid())
+  directoryEntryId String?
   workspaceId String
   createdById String
   source      CreatorLeadSource
@@ -149,10 +150,12 @@ model CreatorLead {
 
   workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   createdBy User      @relation(fields: [createdById], references: [id], onDelete: Cascade)
+  directoryEntry CreatorDirectoryEntry? @relation(fields: [directoryEntryId], references: [id], onDelete: SetNull)
 
   @@unique([workspaceId, profileUrl])
   @@index([workspaceId, status, createdAt])
   @@index([workspaceId, platform])
+  @@index([directoryEntryId])
 }
 
 enum CreatorLeadSource {
@@ -168,6 +171,29 @@ enum CreatorLeadStatus {
   APPROVED
   ARCHIVED
   FAILED
+}
+
+model CreatorDirectoryEntry {
+  id              String   @id @default(cuid())
+  primaryName     String?
+  normalizedName  String?
+  primaryEmail    String?
+  normalizedEmail String?  @unique
+  profileUrls     String[]
+  platforms       Platform[]
+  categories      String[]
+  contactNotes    String?  @db.Text
+  sourceCount     Int      @default(0)
+  firstSeenAt     DateTime @default(now())
+  lastSeenAt      DateTime @default(now())
+  metadata        Json     @default("{}")
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  leads CreatorLead[]
+
+  @@index([normalizedName])
+  @@index([lastSeenAt])
 }
 
 model Creator {

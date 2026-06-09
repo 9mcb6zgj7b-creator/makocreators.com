@@ -200,3 +200,21 @@ Every record should distinguish:
 - Externally completed human action.
 
 No database state should imply that Mako itself sent outreach, shipped samples, approved paid terms, granted usage rights, signed contracts, published content, or launched paid ads.
+
+
+## Creator Directory
+
+`CreatorDirectoryEntry` is Mako's internal global creator database. It stores normalized creator identity and contact data collected across workspace imports.
+
+Core fields:
+
+- `primaryName` / `normalizedName`
+- `primaryEmail` / `normalizedEmail`
+- `profileUrls`
+- `platforms`
+- `categories`
+- `contactNotes`
+- `sourceCount`
+- `firstSeenAt` / `lastSeenAt`
+
+`CreatorLead` records now optionally point to a directory entry through `directoryEntryId`. This keeps customer workspace data isolated while allowing Mako to build a durable internal creator database for future enrichment and scoring.

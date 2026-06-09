@@ -2,6 +2,7 @@ import { NextRequest } from "next/server";
 import { z } from "zod";
 import { apiError, created, ok } from "@/lib/api";
 import { getRequestContext } from "@/lib/auth";
+import { attachLeadToCreatorDirectory } from "@/lib/creator-directory";
 import {
   creatorLeadLinksSchema,
   creatorLeadStatusSchema,
@@ -101,6 +102,10 @@ export async function POST(req: NextRequest) {
           },
         })
       )
+    );
+
+    await Promise.all(
+      leads.map((lead, index) => attachLeadToCreatorDirectory(inputs[index], lead.id))
     );
 
     return created({ leads, count: leads.length });

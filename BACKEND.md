@@ -149,6 +149,17 @@ Task creation example:
 }
 ```
 
+
+## Creator Directory
+
+Mako now keeps a global creator directory in addition to workspace-owned creator leads.
+
+- `CreatorLead` remains workspace-owned and records what a specific customer imported.
+- `CreatorDirectoryEntry` is the internal cross-workspace creator database.
+- Imports sync into the directory by normalized creator email first, then normalized creator name, then profile URL.
+- Repeated creator emails or names update the existing directory entry instead of creating duplicate creator records.
+- This directory is an internal data foundation for future enrichment, scoring, and creator database workflows; it is not exposed as a public user-facing list yet.
+
 ## Creator Lead Intake
 
 The authenticated `/creators/import` page connects to the creator lead APIs. In local no-database preview mode, the page remains visible for workflow review but warns that imports need `DATABASE_URL` before leads can be saved.
