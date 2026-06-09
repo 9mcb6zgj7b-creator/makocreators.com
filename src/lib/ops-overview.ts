@@ -210,14 +210,8 @@ export async function getOpsOverview(workspaceId: string): Promise<OpsOverview> 
     return buildPreviewOverview("preview");
   }
 
-  const [creatorLeadCount, contactableCreatorLeadCount, matchRunCount, draftCount, openTaskCount, approvalResult, creatorRecommendations, workspaceDrafts] = await Promise.all([
-    prisma.creatorLead.count({ where: { workspaceId } }),
-    prisma.creatorLead.count({
-      where: {
-        workspaceId,
-        contactEmail: { not: null },
-      },
-    }),
+  const [creatorLeadStats, matchRunCount, draftCount, openTaskCount, approvalResult, creatorRecommendations, workspaceDrafts] = await Promise.all([
+    getCreatorLeadStats(workspaceId),
     prisma.creatorMatchRun.count({ where: { workspaceId } }),
     prisma.outreachDraft.count({ where: { workspaceId, status: "DRAFT" } }),
     prisma.dashboardTask.count({
@@ -239,7 +233,8 @@ export async function getOpsOverview(workspaceId: string): Promise<OpsOverview> 
   const fallbackDraftSource = creatorSource === "workspace" ? "derived" : "preview";
   const draftSource: OpsDataSource = workspaceDrafts.length ? "workspace" : fallbackDraftSource;
   const drafts = workspaceDrafts.length ? workspaceDrafts : buildDraftsFromCreators(creators, fallbackDraftSource);
-  const contactableCreators = contactableCreatorLeadCount || creators.filter(creator => Boolean(creator.contactEmail)).length;
+  const uniqueCreatorCount = creatorLeadStats.uniqueCreators;
+  const contactableCreators = creatorLeadStats.contactableCreators || creators.filter(creator => Boolean(creator.contactEmail)).length;
 
   return {
     ...overview,
@@ -252,8 +247,8 @@ export async function getOpsOverview(workspaceId: string): Promise<OpsOverview> 
     metrics: [
       {
         label: "Creators tracked",
-        value: creatorLeadCount || creators.length,
-        note: creatorLeadCount ? "Workspace creator leads" : "Demo shortlist coverage",
+        value: uniqueCreatorCount || creators.length,
+        note: uniqueCreatorCount ? "Unique creators saved in this workspace" : "Demo shortlist coverage",
       },
       {
         label: "Contactable creators",
@@ -301,6 +296,50 @@ async function getWorkspaceDrafts(workspaceId: string): Promise<OpsDraft[]> {
     status: formatApprovalType(draft.status),
     channel: formatApprovalType(draft.channel),
   }));
+}
+
+async function getCreatorLeadStats(workspaceId: string) {
+  const leads = await prisma.creatorLead.findMany({
+    where: { workspaceId },
+    select: {
+      contactEmail: true,
+      displayName: true,
+      handle: true,
+      profileUrl: true,
+    },
+  });
+
+  const uniqueCreatorKeys = new Set<string>();
+  const contactableCreatorKeys = new Set<string>();
+
+  for (const lead of leads) {
+    const key = getCreatorIdentityKey(lead);
+    uniqueCreatorKeys.add(key);
+    if (lead.contactEmail) {
+      contactableCreatorKeys.add(key);
+    }
+  }
+
+  return {
+    uniqueCreators: uniqueCreatorKeys.size,
+    contactableCreators: contactableCreatorKeys.size,
+  };
+}
+
+function getCreatorIdentityKey(lead: {
+  contactEmail: string | null;
+  displayName: string | null;
+  handle: string | null;
+  profileUrl: string;
+}) {
+  if (lead.contactEmail) return `email:${normalizeCreatorIdentity(lead.contactEmail)}`;
+  if (lead.displayName) return `name:${normalizeCreatorIdentity(lead.displayName)}`;
+  if (lead.handle) return `handle:${normalizeCreatorIdentity(lead.handle).replace(/^@/, "")}`;
+  return `url:${normalizeCreatorIdentity(lead.profileUrl)}`;
+}
+
+function normalizeCreatorIdentity(value: string) {
+  return value.trim().toLowerCase().replace(/\s+/g, " ");
 }
 
 async function getCreatorRecommendations(workspaceId: string): Promise<OpsCreator[]> {
