@@ -15,6 +15,8 @@ export function notFound(message = "Not found.") {
 }
 
 export function apiError(error: unknown, fallback = "Request failed.") {
+  console.error("API route error", error);
+
   if (error instanceof AuthError) {
     return NextResponse.json({ error: error.message }, { status: error.status });
   }

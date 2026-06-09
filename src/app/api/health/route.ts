@@ -8,6 +8,9 @@ export async function GET() {
     service: "makocreators.com",
     environment: process.env.NODE_ENV,
     databaseConfigured: Boolean(process.env.DATABASE_URL),
+    resendApiKeyConfigured: Boolean(process.env.RESEND_API_KEY),
+    resendFromEmailConfigured: Boolean(process.env.RESEND_FROM_EMAIL),
+    twilioConfigured: Boolean(process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN && process.env.TWILIO_FROM_PHONE),
     localPreviewAuthEnabled: process.env.AUTH_SHOW_DEV_CODE === "true",
     checkedAt: new Date().toISOString(),
   });
