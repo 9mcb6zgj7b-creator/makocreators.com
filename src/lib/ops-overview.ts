@@ -302,6 +302,7 @@ async function getCreatorLeadStats(workspaceId: string) {
   const leads = await prisma.creatorLead.findMany({
     where: { workspaceId },
     select: {
+      rawInput: true,
       contactEmail: true,
       displayName: true,
       handle: true,
@@ -312,10 +313,10 @@ async function getCreatorLeadStats(workspaceId: string) {
   const uniqueCreatorKeys = new Set<string>();
   const contactableCreatorKeys = new Set<string>();
 
-  for (const lead of leads) {
-    const key = getCreatorIdentityKey(lead);
+  for (const group of groupWorkspaceCreatorLeads(leads)) {
+    const key = getCreatorGroupIdentityKey(group);
     uniqueCreatorKeys.add(key);
-    if (lead.contactEmail) {
+    if (group.some(lead => lead.contactEmail)) {
       contactableCreatorKeys.add(key);
     }
   }
@@ -326,20 +327,98 @@ async function getCreatorLeadStats(workspaceId: string) {
   };
 }
 
-function getCreatorIdentityKey(lead: {
+function getCreatorIdentityKeys(lead: {
+  rawInput?: unknown;
   contactEmail: string | null;
   displayName: string | null;
   handle: string | null;
   profileUrl: string;
 }) {
-  if (lead.displayName) return `name:${normalizeCreatorIdentity(lead.displayName)}`;
-  if (lead.handle) return `handle:${normalizeCreatorIdentity(lead.handle).replace(/^@/, "")}`;
-  if (lead.contactEmail) return `email:${normalizeCreatorIdentity(lead.contactEmail)}`;
-  return `url:${normalizeCreatorIdentity(lead.profileUrl)}`;
+  return uniqueStrings([
+    ...getRawInputCreatorNames(lead.rawInput).map(name => `name:${normalizeCreatorIdentity(name)}`),
+    lead.displayName ? `name:${normalizeCreatorIdentity(lead.displayName)}` : "",
+    lead.handle ? `handle:${normalizeCreatorIdentity(lead.handle).replace(/^@/, "")}` : "",
+    lead.contactEmail ? `email:${normalizeCreatorIdentity(lead.contactEmail)}` : "",
+    ...getRawInputProfileUrls(lead.rawInput).flatMap(getProfileIdentityKeys),
+    ...getProfileIdentityKeys(lead.profileUrl),
+  ]);
+}
+
+function getCreatorGroupIdentityKey(group: Array<{
+  rawInput?: unknown;
+  contactEmail: string | null;
+  displayName: string | null;
+  handle: string | null;
+  profileUrl: string;
+}>) {
+  return group.flatMap(getCreatorIdentityKeys).sort()[0] ?? `url:${normalizeCreatorIdentity(group[0]?.profileUrl ?? "")}`;
 }
 
 function normalizeCreatorIdentity(value: string) {
   return value.trim().toLowerCase().replace(/\s+/g, " ");
+}
+
+function getRawInputCreatorNames(rawInput: unknown) {
+  const names: string[] = [];
+  for (const row of getRawInputRows(rawInput)) {
+    const name = getRawRowValue(row, ["Influencers' ID", "Influencer ID", "Creator", "Creator ID", "Name", "Display Name"]);
+    if (name) names.push(name);
+  }
+  return names;
+}
+
+function getRawInputProfileUrls(rawInput: unknown) {
+  const urls: string[] = [];
+  if (isRecord(rawInput) && Array.isArray(rawInput.profileUrls)) {
+    urls.push(...rawInput.profileUrls.filter((value): value is string => typeof value === "string"));
+  }
+  for (const row of getRawInputRows(rawInput)) {
+    const url = getRawRowValue(row, ["link", "Link", "URL", "Profile URL"]);
+    if (url) urls.push(url);
+  }
+  return urls;
+}
+
+function getRawInputRows(rawInput: unknown) {
+  if (!isRecord(rawInput)) return [];
+  if (Array.isArray(rawInput.rows)) {
+    return rawInput.rows.filter(isRecord);
+  }
+  return [rawInput];
+}
+
+function getRawRowValue(row: Record<string, unknown>, aliases: string[]) {
+  const entries = Object.entries(row).map(([key, value]) => [normalizeCreatorIdentity(key), value] as const);
+  for (const alias of aliases) {
+    const match = entries.find(([key]) => key === normalizeCreatorIdentity(alias));
+    const value = match?.[1];
+    if (typeof value === "string" && value.trim()) return value.trim();
+  }
+  return null;
+}
+
+function getProfileIdentityKeys(profileUrl: string) {
+  const normalizedUrl = normalizeCreatorIdentity(profileUrl);
+  const handle = extractProfileHandle(profileUrl);
+  return uniqueStrings([
+    `url:${normalizedUrl}`,
+    handle ? `handle:${normalizeCreatorIdentity(handle).replace(/^@/, "")}` : "",
+  ]);
+}
+
+function extractProfileHandle(profileUrl: string) {
+  try {
+    const parsed = new URL(profileUrl.startsWith("http") || profileUrl.startsWith("mailto:") ? profileUrl : `https://${profileUrl}`);
+    if (parsed.protocol === "mailto:") return parsed.pathname.split("@")[0] || null;
+    const segment = parsed.pathname.split("/").filter(Boolean)[0];
+    return segment?.replace(/^@/, "") || null;
+  } catch {
+    return null;
+  }
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
 }
 
 async function getCreatorRecommendations(workspaceId: string): Promise<OpsCreator[]> {
@@ -349,6 +428,7 @@ async function getCreatorRecommendations(workspaceId: string): Promise<OpsCreato
     take: 200,
     select: {
       id: true,
+      rawInput: true,
       displayName: true,
       handle: true,
       platform: true,
@@ -394,6 +474,7 @@ async function getCreatorRecommendations(workspaceId: string): Promise<OpsCreato
 
 function mergeWorkspaceCreatorLeads<T extends {
   id: string;
+  rawInput?: unknown;
   displayName: string | null;
   handle: string | null;
   platform: string;
@@ -407,17 +488,11 @@ function mergeWorkspaceCreatorLeads<T extends {
   contactEmail: string | null;
   contactPhone: string | null;
 }>(leads: T[]) {
-  const merged = new Map<string, T>();
+  const groups = groupWorkspaceCreatorLeads(leads);
 
-  for (const lead of leads) {
-    const key = getCreatorIdentityKey(lead);
-    const existing = merged.get(key);
-    if (!existing) {
-      merged.set(key, lead);
-      continue;
-    }
-
-    merged.set(key, {
+  return groups.map(group => {
+    const [first, ...rest] = group;
+    return rest.reduce<T>((existing, lead) => ({
       ...existing,
       displayName: existing.displayName || lead.displayName,
       handle: existing.handle || lead.handle,
@@ -428,10 +503,51 @@ function mergeWorkspaceCreatorLeads<T extends {
       contactEmail: existing.contactEmail || lead.contactEmail,
       contactPhone: existing.contactPhone || lead.contactPhone,
       notes: existing.notes || lead.notes,
-    });
-  }
+    }), first);
+  });
+}
 
-  return Array.from(merged.values());
+function groupWorkspaceCreatorLeads<T extends {
+  rawInput?: unknown;
+  contactEmail: string | null;
+  displayName: string | null;
+  handle: string | null;
+  profileUrl: string;
+}>(leads: T[]) {
+  const parents = leads.map((_, index) => index);
+  const firstLeadIndexByKey = new Map<string, number>();
+
+  leads.forEach((lead, index) => {
+    for (const key of getCreatorIdentityKeys(lead)) {
+      const firstLeadIndex = firstLeadIndexByKey.get(key);
+      if (typeof firstLeadIndex === "number") {
+        unionIndexes(parents, index, firstLeadIndex);
+      } else {
+        firstLeadIndexByKey.set(key, index);
+      }
+    }
+  });
+
+  const groups = new Map<number, T[]>();
+  leads.forEach((lead, index) => {
+    const root = findRootIndex(parents, index);
+    groups.set(root, [...(groups.get(root) ?? []), lead]);
+  });
+
+  return Array.from(groups.values());
+}
+
+function findRootIndex(parents: number[], index: number): number {
+  if (parents[index] !== index) {
+    parents[index] = findRootIndex(parents, parents[index]);
+  }
+  return parents[index];
+}
+
+function unionIndexes(parents: number[], left: number, right: number) {
+  const leftRoot = findRootIndex(parents, left);
+  const rightRoot = findRootIndex(parents, right);
+  if (leftRoot !== rightRoot) parents[rightRoot] = leftRoot;
 }
 
 function uniqueStrings(values: string[]) {
