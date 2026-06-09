@@ -3,6 +3,7 @@ import { ApprovalStatus } from "@prisma/client";
 import { z } from "zod";
 import { apiError, notFound, ok } from "@/lib/api";
 import { getRequestContext } from "@/lib/auth";
+import { handleApprovedConversationApproval } from "@/lib/conversation-automation";
 import { prisma } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
@@ -37,7 +38,9 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
       },
     });
 
-    return ok({ approval });
+    const automationResult = body.status === "APPROVED" ? await handleApprovedConversationApproval(approval) : null;
+
+    return ok({ approval, automationResult });
   } catch (error) {
     return apiError(error, "Failed to update approval.");
   }

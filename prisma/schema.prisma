@@ -26,6 +26,7 @@ model User {
   dashboardTasks    DashboardTask[]
   approvalsCreated  Approval[] @relation("ApprovalCreatedBy")
   approvalsReviewed Approval[] @relation("ApprovalReviewedBy")
+  conversationThreadsAssigned ConversationThread[] @relation("ConversationThreadAssignedHuman")
 }
 
 model Session {
@@ -86,6 +87,7 @@ model Workspace {
   campaigns        Campaign[]
   dashboardTasks   DashboardTask[]
   approvals        Approval[]
+  conversationThreads ConversationThread[]
 }
 
 model WorkspaceMember {
@@ -166,6 +168,7 @@ model CreatorLead {
   workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   createdBy User      @relation(fields: [createdById], references: [id], onDelete: Cascade)
   directoryEntry CreatorDirectoryEntry? @relation(fields: [directoryEntryId], references: [id], onDelete: SetNull)
+  conversationThreads ConversationThread[]
 
   @@unique([workspaceId, profileUrl])
   @@index([workspaceId, status, createdAt])
@@ -362,6 +365,7 @@ model OutreachDraft {
   workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   createdBy User      @relation(fields: [createdById], references: [id], onDelete: Cascade)
   approvals Approval[]
+  conversationThreads ConversationThread[]
 
   @@index([workspaceId, createdAt])
 }
@@ -379,6 +383,83 @@ enum OutreachStatus {
   DRAFT
   SENT
   ARCHIVED
+}
+
+model ConversationThread {
+  id              String                  @id @default(cuid())
+  workspaceId     String
+  creatorLeadId   String?
+  outreachDraftId String?
+  assignedHumanId String?
+  state           ConversationThreadState @default(DRAFT)
+  subject         String?
+  creatorEmail    String?
+  replyToEmail    String?
+  lastIntent      String?
+  lastConfidence  Float?
+  nextActionAt    DateTime?
+  lastMessageAt   DateTime?
+  metadata        Json                    @default("{}")
+  createdAt       DateTime                @default(now())
+  updatedAt       DateTime                @updatedAt
+
+  workspace       Workspace      @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  creatorLead     CreatorLead?   @relation(fields: [creatorLeadId], references: [id], onDelete: SetNull)
+  outreachDraft   OutreachDraft? @relation(fields: [outreachDraftId], references: [id], onDelete: SetNull)
+  assignedHuman   User?          @relation("ConversationThreadAssignedHuman", fields: [assignedHumanId], references: [id], onDelete: SetNull)
+  messages        ConversationMessage[]
+
+  @@index([workspaceId, state, nextActionAt])
+  @@index([creatorLeadId])
+  @@index([assignedHumanId])
+  @@index([replyToEmail])
+}
+
+model ConversationMessage {
+  id                String                       @id @default(cuid())
+  threadId          String
+  direction         ConversationMessageDirection
+  provider          String?
+  providerMessageId String?
+  fromEmail         String?
+  toEmail           String?
+  subject           String?
+  textBody          String?                      @db.Text
+  htmlBody          String?                      @db.Text
+  intent            String?
+  confidence        Float?
+  extractedTimes    Json                         @default("[]")
+  metadata          Json                         @default("{}")
+  createdAt         DateTime                     @default(now())
+
+  thread            ConversationThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
+
+  @@index([threadId, createdAt])
+  @@index([providerMessageId])
+}
+
+enum ConversationThreadState {
+  DRAFT
+  READY_TO_SEND
+  INITIAL_SENT
+  REPLIED
+  INTERESTED_ASSETS
+  WAITING_ASSET_APPROVAL
+  ASSETS_SENT
+  INTERESTED_VISIT
+  WAITING_VISIT_APPROVAL
+  VISIT_SCHEDULED
+  FOLLOW_UP_DUE
+  NO_RESPONSE
+  REJECTED
+  NEEDS_HUMAN
+  CLOSED
+}
+
+enum ConversationMessageDirection {
+  OUTBOUND
+  INBOUND
+  INTERNAL
 }
 
 model Campaign {
@@ -482,6 +563,8 @@ model Approval {
 
 enum ApprovalType {
   SEND_OUTREACH
+  SEND_ASSETS
+  SCHEDULE_VISIT
   SHIP_SAMPLE
   PAID_COLLABORATION
   USAGE_RIGHTS

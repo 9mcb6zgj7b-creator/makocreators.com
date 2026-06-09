@@ -2408,6 +2408,21 @@ h2 {
   overflow: auto;
 }
 
+.ops-modal-approval-list {
+  display: grid;
+  gap: 12px;
+  max-height: calc(min(82vh, 840px) - 118px);
+  overflow: auto;
+  padding: 16px;
+}
+
+.ops-modal-approval-list .ops-approval-card {
+  border: 1px solid #eef0f4;
+  border-radius: 16px;
+  background: #fbfbfc;
+  padding: 16px;
+}
+
 .creator-list-empty {
   padding: 32px;
 }

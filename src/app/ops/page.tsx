@@ -56,7 +56,12 @@ export default async function OpsPage() {
           ))}
         </section>
 
-        <OpsMetricCards metrics={overview.metrics} creators={creatorRows} contactableCreators={contactableCreatorRows} />
+        <OpsMetricCards
+          metrics={overview.metrics}
+          creators={creatorRows}
+          contactableCreators={contactableCreatorRows}
+          approvals={overview.approvals}
+        />
       </section>
     </AppShell>
   );
