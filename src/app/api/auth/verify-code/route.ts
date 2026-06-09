@@ -1,7 +1,7 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { z } from "zod";
 import { apiError, ok } from "@/lib/api";
-import { SESSION_COOKIE, getSessionCookieOptions, verifyLoginChallenge } from "@/lib/auth";
+import { SESSION_COOKIE, getClientIp, getSessionCookieOptions, verifyLoginChallenge } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
@@ -15,7 +15,7 @@ const schema = z.object({
 export async function POST(req: NextRequest) {
   try {
     const body = schema.parse(await req.json());
-    const session = await verifyLoginChallenge(body.identifier, body.code, { name: body.name });
+    const session = await verifyLoginChallenge(body.identifier, body.code, { name: body.name }, { ip: getClientIp(req) });
     const res = ok({
       ok: true,
       user: {

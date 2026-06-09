@@ -15,7 +15,7 @@ type LoginCodeDeliveryInput =
     };
 
 export async function deliverLoginCode(input: LoginCodeDeliveryInput) {
-  if (process.env.AUTH_SHOW_DEV_CODE === "true") {
+  if (process.env.AUTH_SHOW_DEV_CODE === "true" && process.env.NODE_ENV !== "production") {
     return { delivery: "local-preview" as const };
   }
 

@@ -47,12 +47,27 @@ model LoginChallenge {
   email       String?
   phone       String?
   codeHash    String
+  failedAttempts Int    @default(0)
+  lockedAt    DateTime?
   expiresAt   DateTime
   consumedAt  DateTime?
   createdAt   DateTime @default(now())
 
   @@index([identifier])
   @@index([expiresAt])
+}
+
+model AuthRateLimit {
+  id        String   @id @default(cuid())
+  action    String
+  key       String
+  count     Int      @default(0)
+  resetAt   DateTime
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([action, key])
+  @@index([resetAt])
 }
 
 model Workspace {

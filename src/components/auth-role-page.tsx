@@ -98,28 +98,6 @@ export function AuthRolePage({ mode, role, nextPath = "/dashboard" }: { mode: Mo
     }
   }
 
-  async function continueWithGoogle() {
-    setError("");
-    setStatus("Connecting with Google...");
-    setIsLoading(true);
-
-    try {
-      const res = await fetch("/api/auth/google-preview", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ role }),
-      });
-      const data = (await res.json()) as ApiResponse;
-      if (!res.ok) throw new Error(formatApiError(data.error));
-      window.location.assign(nextPath);
-    } catch (caught) {
-      setStatus("");
-      setError(caught instanceof Error ? caught.message : "Google sign-in failed.");
-    } finally {
-      setIsLoading(false);
-    }
-  }
-
   return (
     <main style={{ minHeight: "100vh", background: "#faf8f4", fontFamily: SF, display: "flex" }}>
       <section className="auth-marketing-panel">
@@ -221,16 +199,9 @@ export function AuthRolePage({ mode, role, nextPath = "/dashboard" }: { mode: Mo
             {isSignup ? "Signing up" : "Log in"} as a <strong style={{ color: "#1a1a1a" }}>{label}</strong>
           </p>
 
-          <div style={{ display: "grid", gap: 10, marginBottom: 20 }}>
-            <ProviderButton provider="Google" disabled={isLoading} onClick={continueWithGoogle} />
-            <ProviderButton provider="TikTok" disabled={isLoading} onClick={() => setStatus("TikTok sign-in will be connected after the official OAuth setup.")} />
-          </div>
-
-          <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20 }}>
-            <div style={{ flex: 1, height: 1, background: "#e8e3da" }} />
-            <span style={{ fontSize: 12, color: "#bbb", fontFamily: SF }}>or</span>
-            <div style={{ flex: 1, height: 1, background: "#e8e3da" }} />
-          </div>
+          <p className="auth-status" style={{ marginBottom: 20 }}>
+            Use email verification to access your private workspace. Google and TikTok OAuth will appear here after official OAuth setup is complete.
+          </p>
 
           {step === "identifier" ? (
             <form onSubmit={requestCode} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
@@ -342,38 +313,6 @@ function TextField({
         }}
       />
     </label>
-  );
-}
-
-function ProviderButton({ provider, disabled = false, onClick }: { provider: "TikTok" | "Google"; disabled?: boolean; onClick: () => void }) {
-  const isTikTok = provider === "TikTok";
-  return (
-    <button
-      type="button"
-      disabled={disabled}
-      onClick={onClick}
-      style={{
-        width: "100%",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        gap: 10,
-        background: isTikTok ? "#000" : "#fff",
-        border: `1px solid ${isTikTok ? "#000" : "#e8e3da"}`,
-        borderRadius: 12,
-        padding: "12px 20px",
-        fontFamily: SF,
-        fontSize: 14,
-        fontWeight: 600,
-        color: isTikTok ? "#fff" : "#1a1a1a",
-        cursor: disabled ? "not-allowed" : "pointer",
-        opacity: disabled ? 0.68 : 1,
-        boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
-      }}
-    >
-      {isTikTok ? <TikTokIcon /> : <GoogleIcon />}
-      Continue with {provider}
-    </button>
   );
 }
 
