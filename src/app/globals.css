@@ -1957,7 +1957,8 @@ h2 {
 .ops-entry-panel,
 .ops-panel,
 .ops-safety-strip,
-.ops-metrics article {
+.ops-metrics article,
+.ops-metric-disclosure {
   border: 1px solid var(--line);
   border-radius: 16px;
   background: var(--surface);
@@ -2111,11 +2112,96 @@ h2 {
   gap: 14px;
 }
 
-.ops-metrics article {
+.ops-metrics article,
+.ops-metric-disclosure summary {
   display: grid;
   gap: 4px;
   min-height: 132px;
   padding: 18px;
+}
+
+.ops-metric-disclosure {
+  overflow: hidden;
+}
+
+.ops-metric-disclosure summary {
+  cursor: pointer;
+  list-style: none;
+}
+
+.ops-metric-disclosure summary::-webkit-details-marker {
+  display: none;
+}
+
+.ops-metric-disclosure summary::after {
+  content: "Open list";
+  align-self: end;
+  width: fit-content;
+  margin-top: 8px;
+  border-radius: 999px;
+  background: #fff3ea;
+  color: var(--accent);
+  padding: 6px 10px;
+  font-size: 11px;
+  font-weight: 950;
+  text-transform: uppercase;
+}
+
+.ops-metric-disclosure[open] summary::after {
+  content: "Close list";
+}
+
+.ops-metric-list {
+  border-top: 1px solid #eef0f4;
+  padding: 12px;
+}
+
+.ops-compact-creator-list {
+  display: grid;
+  gap: 8px;
+  max-height: 380px;
+  overflow: auto;
+  padding-right: 4px;
+}
+
+.ops-compact-creator-list article {
+  min-height: auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border: 0;
+  padding: 10px;
+  border-radius: 12px;
+  background: #f7f8fb;
+  box-shadow: none;
+}
+
+.ops-compact-creator-list strong {
+  display: block;
+  font-size: 14px;
+  line-height: 1.2;
+}
+
+.ops-compact-creator-list small,
+.ops-compact-creator-list span,
+.ops-metric-empty {
+  color: #687080;
+  font-size: 12px;
+  font-weight: 750;
+  text-transform: none;
+}
+
+.ops-compact-creator-list > article > span {
+  max-width: 54%;
+  overflow: hidden;
+  text-align: right;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ops-metric-empty {
+  margin: 0;
 }
 
 .ops-metrics span {
@@ -2135,6 +2221,11 @@ h2 {
   color: #6f7480;
   font-size: 12px;
   font-weight: 750;
+}
+
+.ops-metrics .ops-compact-creator-list span,
+.ops-metrics .ops-compact-creator-list small {
+  text-transform: none;
 }
 
 .ops-grid {

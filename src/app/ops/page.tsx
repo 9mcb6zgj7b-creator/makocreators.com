@@ -1,5 +1,5 @@
+import type { ReactNode } from "react";
 import { AppShell, Icon } from "@/components/app-shell";
-import { ApprovalActions } from "@/components/approval-actions";
 import { getOpsOverview } from "@/lib/ops-overview";
 import { requirePageContext } from "@/lib/page-auth";
 
@@ -53,152 +53,26 @@ export default async function OpsPage() {
         </section>
 
         <section className="ops-metrics" aria-label="Operations metrics">
-          {overview.metrics.map(metric => (
-            <Metric label={metric.label} value={metric.value} note={metric.note} key={metric.label} />
-          ))}
-        </section>
+          {overview.metrics.map(metric => {
+            if (metric.label === "Creators tracked") {
+              return (
+                <MetricDisclosure label={metric.label} value={metric.value} note={metric.note} key={metric.label}>
+                  <CreatorList creators={overview.creators} emptyText="No creators have been saved yet." />
+                </MetricDisclosure>
+              );
+            }
 
-        <div className="ops-grid">
-          <section className="ops-panel ops-panel-large" aria-labelledby="recommendations-title">
-            <div className="ops-panel-header">
-              <div>
-                <h2 id="recommendations-title">Creator contact queue</h2>
-                <p>Save creator emails first, then prepare safe outreach drafts for human approval.</p>
-              </div>
-              <SourcePill source={overview.creatorSource} />
-            </div>
-            <div className="ops-recommendation-list">
-              {overview.creators.map(creator => (
-                <article className="ops-recommendation-card" key={creator.handle}>
-                  <div>
-                    <div className="ops-card-title-row">
-                      <strong>{creator.name}</strong>
-                      <span className={creator.contactEmail ? "ops-score contact" : "ops-score pending"}>
-                        {creator.contactEmail ? "Email saved" : "Needs email"}
-                      </span>
-                    </div>
-                    <p>{creator.driver}</p>
-                    <div className="ops-chip-row">
-                      <span className={`ops-chip ${creator.pathClass}`}>{creator.path}</span>
-                      <span className="ops-chip neutral">{creator.stage}</span>
-                    </div>
-                  </div>
-                </article>
-              ))}
-            </div>
-          </section>
+            if (metric.label === "Contactable creators") {
+              const contactableCreators = overview.creators.filter(creator => creator.contactEmail);
+              return (
+                <MetricDisclosure label={metric.label} value={metric.value} note={metric.note} key={metric.label}>
+                  <CreatorList creators={contactableCreators} emptyText="No creator emails are saved yet." showEmail />
+                </MetricDisclosure>
+              );
+            }
 
-          <section className="ops-panel" aria-labelledby="pipeline-title">
-            <h2 id="pipeline-title">Pipeline</h2>
-            <div className="ops-pipeline-list">
-              {overview.pipeline.map(stage => (
-                <div className="ops-pipeline-row" key={stage.label}>
-                  <span>{stage.label}</span>
-                  <strong>{stage.count}</strong>
-                </div>
-              ))}
-            </div>
-          </section>
-        </div>
-
-        <div className="ops-grid">
-          <section className="ops-panel ops-panel-large" aria-labelledby="scoring-title">
-            <h2 id="scoring-title">Creator contacts</h2>
-            <div className="ops-table" role="table" aria-label="Creator scores">
-              <div className="ops-table-head" role="row">
-                <span>Creator</span>
-                <span>Contact</span>
-                <span>Status</span>
-                <span>Next step</span>
-              </div>
-              {overview.creators.map(creator => (
-                <div className="ops-table-row" role="row" key={creator.handle}>
-                  <span>
-                    <strong>{creator.name}</strong>
-                    <small>{creator.handle} · {creator.channel}</small>
-                  </span>
-                  <span>{creator.contactEmail || "Email needed"}</span>
-                  <span className={`ops-chip ${creator.pathClass}`}>{creator.path}</span>
-                  <span>{creator.risk}</span>
-                </div>
-              ))}
-            </div>
-          </section>
-
-          <section className="ops-panel" aria-labelledby="draft-title">
-            <div className="ops-panel-header compact">
-              <h2 id="draft-title">Safe draft package</h2>
-              <SourcePill source={overview.draftSource} />
-            </div>
-            <div className="ops-draft-stack">
-              {overview.drafts.map(draft => (
-                <article className="ops-draft-card" key={draft.id || draft.title}>
-                  <div className="ops-card-title-row">
-                    <strong>{draft.title}</strong>
-                    <span className="ops-chip neutral">{draft.status}</span>
-                  </div>
-                  {draft.channel ? <small>{draft.channel}</small> : null}
-                  <p>{draft.summary}</p>
-                </article>
-              ))}
-            </div>
-          </section>
-        </div>
-
-        <div className="ops-grid">
-          <section className="ops-panel" aria-labelledby="approval-title">
-            <div className="ops-panel-header compact">
-              <h2 id="approval-title">Approval queue</h2>
-              <SourcePill source={overview.approvalSource} />
-            </div>
-            {overview.approvals.length ? (
-              <div className="ops-approval-list">
-                {overview.approvals.map(item => (
-                  <article className="ops-approval-card" key={item.title}>
-                    <div className="ops-card-title-row">
-                      <strong>{item.title}</strong>
-                      <span className={`ops-risk ${item.risk.toLowerCase()}`}>{item.risk}</span>
-                    </div>
-                    <small>{item.type}</small>
-                    <p>{item.summary}</p>
-                    <ApprovalActions approvalId={item.id} isPreview={item.isPreview} title={item.title} />
-                  </article>
-                ))}
-              </div>
-            ) : (
-              <div className="ops-empty-state">
-                <strong>No pending approvals</strong>
-                <p>Workspace approval items will appear here after a draft, shipment, paid collaboration, usage-rights, or AI script action is queued for human review.</p>
-              </div>
-            )}
-          </section>
-
-          <section className="ops-panel ops-panel-large" aria-labelledby="agent-title">
-            <h2 id="agent-title">Latest agent workflow</h2>
-            <div className="ops-agent-timeline">
-              {overview.agentSteps.map(step => (
-                <article className="ops-agent-step" key={step.title}>
-                  <span className={step.state === "Blocked for approval" ? "blocked" : ""} />
-                  <div>
-                    <div className="ops-card-title-row">
-                      <strong>{step.title}</strong>
-                      <small>{step.state}</small>
-                    </div>
-                    <p>{step.summary}</p>
-                  </div>
-                </article>
-              ))}
-            </div>
-          </section>
-        </div>
-
-        <section className="ops-panel" aria-labelledby="blocked-title">
-          <h2 id="blocked-title">Blocked actions</h2>
-          <div className="ops-blocked-grid">
-            {overview.blockedActions.map(action => (
-              <span key={action}>{action}</span>
-            ))}
-          </div>
+            return <Metric label={metric.label} value={metric.value} note={metric.note} key={metric.label} />;
+          })}
         </section>
       </section>
     </AppShell>
@@ -238,7 +112,45 @@ function Metric({ label, value, note }: { label: string; value: number; note: st
   );
 }
 
-function SourcePill({ source }: { source: "workspace" | "preview" | "derived" }) {
-  const label = source === "workspace" ? "Workspace" : source === "derived" ? "Derived" : "Preview";
-  return <span className={`ops-source-pill ${source}`}>{label}</span>;
+function MetricDisclosure({ label, value, note, children }: { label: string; value: number; note: string; children: ReactNode }) {
+  return (
+    <details className="ops-metric-disclosure">
+      <summary>
+        <span>{label}</span>
+        <strong>{value}</strong>
+        <small>{note}</small>
+      </summary>
+      <div className="ops-metric-list">
+        {children}
+      </div>
+    </details>
+  );
+}
+
+function CreatorList({
+  creators,
+  emptyText,
+  showEmail = false,
+}: {
+  creators: Array<{ name: string; handle: string; channel: string; contactEmail?: string | null; stage: string }>;
+  emptyText: string;
+  showEmail?: boolean;
+}) {
+  if (!creators.length) {
+    return <p className="ops-metric-empty">{emptyText}</p>;
+  }
+
+  return (
+    <div className="ops-compact-creator-list">
+      {creators.map(creator => (
+        <article key={`${creator.handle}-${creator.contactEmail || creator.name}`}>
+          <div>
+            <strong>{creator.name}</strong>
+            <small>{creator.handle} · {creator.channel}</small>
+          </div>
+          <span>{showEmail ? creator.contactEmail || "Email needed" : creator.stage}</span>
+        </article>
+      ))}
+    </div>
+  );
 }

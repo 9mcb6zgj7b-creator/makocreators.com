@@ -332,9 +332,9 @@ function getCreatorIdentityKey(lead: {
   handle: string | null;
   profileUrl: string;
 }) {
-  if (lead.contactEmail) return `email:${normalizeCreatorIdentity(lead.contactEmail)}`;
   if (lead.displayName) return `name:${normalizeCreatorIdentity(lead.displayName)}`;
   if (lead.handle) return `handle:${normalizeCreatorIdentity(lead.handle).replace(/^@/, "")}`;
+  if (lead.contactEmail) return `email:${normalizeCreatorIdentity(lead.contactEmail)}`;
   return `url:${normalizeCreatorIdentity(lead.profileUrl)}`;
 }
 
@@ -346,7 +346,7 @@ async function getCreatorRecommendations(workspaceId: string): Promise<OpsCreato
   const leads = await prisma.creatorLead.findMany({
     where: { workspaceId },
     orderBy: [{ updatedAt: "desc" }, { createdAt: "desc" }],
-    take: 8,
+    take: 200,
     select: {
       id: true,
       displayName: true,
@@ -364,7 +364,9 @@ async function getCreatorRecommendations(workspaceId: string): Promise<OpsCreato
     },
   });
 
-  return leads.map(lead => {
+  const uniqueLeads = mergeWorkspaceCreatorLeads(leads);
+
+  return uniqueLeads.map(lead => {
     const score = null;
     const hasContact = Boolean(lead.contactEmail || lead.contactPhone);
     const pathClass: OpsPathClass = hasContact ? "neutral" : "hold";
@@ -388,6 +390,57 @@ async function getCreatorRecommendations(workspaceId: string): Promise<OpsCreato
       draft: buildCreatorDraft(name, pathClass),
     };
   });
+}
+
+function mergeWorkspaceCreatorLeads<T extends {
+  id: string;
+  displayName: string | null;
+  handle: string | null;
+  platform: string;
+  profileUrl: string;
+  city: string | null;
+  categories: string[];
+  followers: number | null;
+  avgViews: number | null;
+  status: string;
+  notes: string | null;
+  contactEmail: string | null;
+  contactPhone: string | null;
+}>(leads: T[]) {
+  const merged = new Map<string, T>();
+
+  for (const lead of leads) {
+    const key = getCreatorIdentityKey(lead);
+    const existing = merged.get(key);
+    if (!existing) {
+      merged.set(key, lead);
+      continue;
+    }
+
+    merged.set(key, {
+      ...existing,
+      displayName: existing.displayName || lead.displayName,
+      handle: existing.handle || lead.handle,
+      city: existing.city || lead.city,
+      categories: uniqueStrings([...existing.categories, ...lead.categories]),
+      followers: maxNumber([existing.followers, lead.followers]),
+      avgViews: maxNumber([existing.avgViews, lead.avgViews]),
+      contactEmail: existing.contactEmail || lead.contactEmail,
+      contactPhone: existing.contactPhone || lead.contactPhone,
+      notes: existing.notes || lead.notes,
+    });
+  }
+
+  return Array.from(merged.values());
+}
+
+function uniqueStrings(values: string[]) {
+  return Array.from(new Set(values.filter(Boolean)));
+}
+
+function maxNumber(values: Array<number | null>) {
+  const numbers = values.filter((value): value is number => typeof value === "number" && Number.isFinite(value));
+  return numbers.length ? Math.max(...numbers) : null;
 }
 
 async function getPendingApprovals(workspaceId: string): Promise<{ items: OpsApproval[]; unavailable: boolean }> {
