@@ -124,11 +124,19 @@ export function excelRowToCreatorLead(row: Record<string, unknown>): CreatorLead
 export function dedupeCreatorLeadInputs(inputs: CreatorLeadInput[]) {
   const seen = new Set<string>();
   return inputs.filter(input => {
-    const key = input.profileUrl.toLowerCase();
-    if (seen.has(key)) return false;
-    seen.add(key);
+    const keys = getCreatorLeadDedupeKeys(input);
+    if (keys.some(key => seen.has(key))) return false;
+    keys.forEach(key => seen.add(key));
     return true;
   });
+}
+
+export function getCreatorLeadDedupeKeys(input: Pick<CreatorLeadInput, "profileUrl" | "contactEmail" | "displayName">) {
+  return [
+    input.contactEmail ? `email:${input.contactEmail.trim().toLowerCase()}` : null,
+    input.displayName ? `name:${input.displayName.trim().toLowerCase()}` : null,
+    input.profileUrl ? `url:${input.profileUrl.trim().toLowerCase()}` : null,
+  ].filter((key): key is string => Boolean(key));
 }
 
 function mapRow(row: Record<string, unknown>) {
