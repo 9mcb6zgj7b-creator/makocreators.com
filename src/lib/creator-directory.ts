@@ -1,10 +1,9 @@
 import type { CreatorLeadInput } from "@/lib/creator-leads";
-import { getCreatorLeadDedupeKeys } from "@/lib/creator-leads";
 import { prisma } from "@/lib/db";
 
 type DirectoryInput = Pick<
   CreatorLeadInput,
-  "profileUrl" | "displayName" | "handle" | "contactEmail" | "platform" | "categories" | "contactNotes"
+  "profileUrl" | "profileUrls" | "displayName" | "handle" | "contactEmail" | "platform" | "platforms" | "categories" | "contactNotes" | "rawInput"
 >;
 
 export function normalizeCreatorName(value: string | null | undefined) {
@@ -22,8 +21,11 @@ export async function syncCreatorDirectoryEntry(input: DirectoryInput) {
   const primaryName = input.displayName || input.handle || normalizedEmail?.split("@")[0] || null;
   const normalizedName = normalizeCreatorName(primaryName);
   const existing = await findExistingDirectoryEntry(normalizedEmail, normalizedName);
-  const profileUrls = unique([...(existing?.profileUrls ?? []), input.profileUrl].filter(Boolean));
-  const platforms = unique([...(existing?.platforms ?? []), input.platform].filter(Boolean));
+  const rawInput = input.rawInput && typeof input.rawInput === "object" && !Array.isArray(input.rawInput) ? input.rawInput as Record<string, unknown> : {};
+  const rawProfileUrls = Array.isArray(rawInput.profileUrls) ? rawInput.profileUrls.filter((url): url is string => typeof url === "string") : [];
+  const rawPlatforms = Array.isArray(rawInput.platforms) ? rawInput.platforms.filter((platform): platform is NonNullable<typeof input.platform> => typeof platform === "string") : [];
+  const profileUrls = unique([...(existing?.profileUrls ?? []), input.profileUrl, ...(input.profileUrls ?? []), ...rawProfileUrls].filter(Boolean));
+  const platforms = unique([...(existing?.platforms ?? []), input.platform, ...(input.platforms ?? []), ...rawPlatforms].filter(Boolean));
   const categories = unique([...(existing?.categories ?? []), ...(input.categories ?? [])]);
 
   if (existing) {

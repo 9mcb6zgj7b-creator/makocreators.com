@@ -7,6 +7,7 @@ import {
   dedupeCreatorLeadInputs,
   excelRowToCreatorLead,
   getCreatorLeadDedupeKeys,
+  mergeCreatorLeadInputs,
   normalizeCreatorLeadInput,
 } from "@/lib/creator-leads";
 import { prisma } from "@/lib/db";
@@ -33,9 +34,10 @@ export async function POST(req: NextRequest) {
     const csvText = isCsv ? buffer.toString("utf8") : "";
     const rows = isCsv ? parseCsv(csvText) : await parseWorkbook(buffer);
 
-    const candidates = rows.slice(0, MAX_IMPORT_ROWS).map(excelRowToCreatorLead);
+    const candidates = rows.slice(0, MAX_IMPORT_ROWS).map(excelRowToCreatorLead).filter(input => input !== null);
     const looseInputs = isCsv ? extractLooseContactsFromText(csvText) : extractLooseContactsFromRows(rows);
-    const validInputs = dedupeCreatorLeadInputs([...candidates.filter(input => input !== null), ...looseInputs]);
+    const importInputs = candidates.length ? mergeCreatorLeadInputs(candidates) : dedupeCreatorLeadInputs(looseInputs);
+    const validInputs = dedupeCreatorLeadInputs(importInputs);
 
     if (!validInputs.length) {
       throw new Error("No importable creator contacts were found. Please include creator emails or profile URLs.");
@@ -109,6 +111,7 @@ async function getExistingLeadByDedupeKey(workspaceId: string, inputs: ReturnTyp
   const profileUrls = unique(inputs.map(input => input.profileUrl).filter(Boolean));
   const emails = unique(inputs.map(input => input.contactEmail).filter((email): email is string => Boolean(email)));
   const names = unique(inputs.map(input => input.displayName).filter((name): name is string => Boolean(name)));
+  const handles = unique(inputs.map(input => input.handle).filter((handle): handle is string => Boolean(handle)));
   const existingLeads = await prisma.creatorLead.findMany({
     where: {
       workspaceId,
@@ -116,6 +119,7 @@ async function getExistingLeadByDedupeKey(workspaceId: string, inputs: ReturnTyp
         profileUrls.length ? { profileUrl: { in: profileUrls } } : null,
         emails.length ? { contactEmail: { in: emails } } : null,
         names.length ? { displayName: { in: names } } : null,
+        handles.length ? { handle: { in: handles } } : null,
       ].filter((item): item is NonNullable<typeof item> => Boolean(item)),
     },
     select: {
@@ -123,6 +127,7 @@ async function getExistingLeadByDedupeKey(workspaceId: string, inputs: ReturnTyp
       profileUrl: true,
       contactEmail: true,
       displayName: true,
+      handle: true,
     },
   });
 

@@ -27,8 +27,10 @@ export const creatorLeadLinksSchema = z.object({
 
 export type CreatorLeadInput = {
   profileUrl: string;
+  profileUrls?: string[];
   source: "LINK" | "EXCEL" | "MANUAL";
   platform?: Platform;
+  platforms?: Platform[];
   displayName?: string | null;
   handle?: string | null;
   city?: string | null;
@@ -46,18 +48,18 @@ export type CreatorLeadInput = {
 
 const COLUMN_ALIASES = {
   profileUrl: ["profile url", "url", "link", "主页链接", "达人链接", "链接", "账号链接", "视频链接"],
-  platform: ["platform", "平台"],
-  displayName: ["name", "display name", "creator name", "达人名字", "达人名称", "名字", "名称"],
+  platform: ["platform", "type", "平台"],
+  displayName: ["name", "display name", "creator name", "influencer id", "influencers' id", "influencers id", "creator", "creator id", "达人名字", "达人名称", "名字", "名称"],
   handle: ["handle", "username", "account", "账号", "用户名"],
   city: ["city", "location", "城市", "地区", "位置"],
   categories: ["category", "categories", "tags", "类型", "分类", "标签"],
-  followers: ["followers", "follower count", "粉丝", "粉丝数"],
-  avgViews: ["avg views", "average views", "views", "平均播放", "平均播放量", "播放量"],
+  followers: ["followers", "follower count", "follower number", "粉丝", "粉丝数"],
+  avgViews: ["avg views", "avg. views", "average views", "views", "平均播放", "平均播放量", "播放量"],
   contactEmail: ["email", "contact email", "邮箱", "联系邮箱"],
   contactPhone: ["phone", "contact phone", "手机号", "电话", "联系电话"],
   contactNotes: ["contact", "contact notes", "联系方式", "联系备注", "联系人"],
   priceMin: ["price min", "min price", "最低报价", "报价下限"],
-  priceMax: ["price max", "max price", "最高报价", "报价上限", "报价"],
+  priceMax: ["price max", "max price", "price", "最高报价", "报价上限", "报价"],
   notes: ["notes", "remark", "remarks", "备注"],
 } as const;
 
@@ -131,12 +133,108 @@ export function dedupeCreatorLeadInputs(inputs: CreatorLeadInput[]) {
   });
 }
 
-export function getCreatorLeadDedupeKeys(input: Pick<CreatorLeadInput, "profileUrl" | "contactEmail" | "displayName">) {
+export function mergeCreatorLeadInputs(inputs: CreatorLeadInput[]) {
+  const parents = inputs.map((_, index) => index);
+  const firstInputIndexByKey = new Map<string, number>();
+
+  inputs.forEach((input, inputIndex) => {
+    for (const key of getCreatorLeadDedupeKeys(input)) {
+      const firstInputIndex = firstInputIndexByKey.get(key);
+      if (typeof firstInputIndex === "number") {
+        union(parents, inputIndex, firstInputIndex);
+      } else {
+        firstInputIndexByKey.set(key, inputIndex);
+      }
+    }
+  });
+
+  const groups = new Map<number, CreatorLeadInput[]>();
+  inputs.forEach((input, inputIndex) => {
+    const root = findRoot(parents, inputIndex);
+    const group = groups.get(root) ?? [];
+    group.push(input);
+    groups.set(root, group);
+  });
+
+  return Array.from(groups.values()).map(mergeCreatorLeadGroup);
+}
+
+function findRoot(parents: number[], index: number): number {
+  if (parents[index] !== index) {
+    parents[index] = findRoot(parents, parents[index]);
+  }
+  return parents[index];
+}
+
+function union(parents: number[], left: number, right: number) {
+  const leftRoot = findRoot(parents, left);
+  const rightRoot = findRoot(parents, right);
+  if (leftRoot !== rightRoot) parents[rightRoot] = leftRoot;
+}
+
+export function getCreatorLeadDedupeKeys(input: Pick<CreatorLeadInput, "profileUrl" | "contactEmail" | "displayName" | "handle">) {
   return [
-    input.contactEmail ? `email:${input.contactEmail.trim().toLowerCase()}` : null,
-    input.displayName ? `name:${input.displayName.trim().toLowerCase()}` : null,
-    input.profileUrl ? `url:${input.profileUrl.trim().toLowerCase()}` : null,
+    input.contactEmail ? `email:${normalizeDedupeText(input.contactEmail)}` : null,
+    input.displayName ? `name:${normalizeDedupeText(input.displayName)}` : null,
+    input.handle ? `handle:${normalizeHandleForDedupe(input.handle)}` : null,
+    input.profileUrl ? `url:${normalizeDedupeText(input.profileUrl)}` : null,
   ].filter((key): key is string => Boolean(key));
+}
+
+function mergeCreatorLeadGroup(group: CreatorLeadInput[]) {
+  const first = group[0];
+  const profileUrls = unique(group.flatMap(input => [input.profileUrl, ...(input.profileUrls ?? [])]).filter(Boolean));
+  const platforms = unique(group.flatMap(input => [input.platform, ...(input.platforms ?? [])]).filter(Boolean));
+  const categories = unique(group.flatMap(input => input.categories ?? []));
+  const rawRows = group.map(input => input.rawInput ?? {}).filter(Boolean);
+
+  return normalizeCreatorLeadInput({
+    ...first,
+    profileUrl: profileUrls.find(url => !url.startsWith("mailto:")) ?? first.profileUrl,
+    profileUrls,
+    platform: platforms[0] ?? first.platform,
+    platforms,
+    displayName: group.find(input => input.displayName)?.displayName ?? first.displayName,
+    handle: group.find(input => input.handle)?.handle ?? first.handle,
+    city: group.find(input => input.city)?.city ?? first.city,
+    categories,
+    followers: maxNumber(group.map(input => input.followers)),
+    avgViews: maxNumber(group.map(input => input.avgViews)),
+    contactEmail: group.find(input => input.contactEmail)?.contactEmail ?? first.contactEmail,
+    contactPhone: group.find(input => input.contactPhone)?.contactPhone ?? first.contactPhone,
+    contactNotes: group.find(input => input.contactNotes)?.contactNotes ?? first.contactNotes,
+    priceMin: minNumber(group.map(input => input.priceMin)),
+    priceMax: maxNumber(group.map(input => input.priceMax)),
+    notes: group.find(input => input.notes)?.notes ?? first.notes,
+    rawInput: {
+      source: "merged-creator-import",
+      profileUrls,
+      platforms,
+      rows: rawRows,
+    } as Prisma.InputJsonValue,
+  });
+}
+
+function unique<T>(values: Array<T | null | undefined>) {
+  return Array.from(new Set(values.filter((value): value is T => value !== null && value !== undefined && value !== "")));
+}
+
+function maxNumber(values: Array<number | null | undefined>) {
+  const numbers = values.filter((value): value is number => typeof value === "number" && Number.isFinite(value));
+  return numbers.length ? Math.max(...numbers) : null;
+}
+
+function minNumber(values: Array<number | null | undefined>) {
+  const numbers = values.filter((value): value is number => typeof value === "number" && Number.isFinite(value));
+  return numbers.length ? Math.min(...numbers) : null;
+}
+
+function normalizeDedupeText(value: string) {
+  return value.trim().toLowerCase().replace(/\s+/g, " ");
+}
+
+function normalizeHandleForDedupe(value: string) {
+  return normalizeDedupeText(value).replace(/^@/, "");
 }
 
 function mapRow(row: Record<string, unknown>) {
