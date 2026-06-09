@@ -93,9 +93,7 @@ export async function POST(req: NextRequest) {
       })
     );
 
-    await Promise.all(
-      leads.map((lead, index) => attachLeadToCreatorDirectory(validInputs[index], lead.id))
-    );
+    await attachLeadsToCreatorDirectorySafely(leads, validInputs);
 
     return created({
       imported: leads.length,
@@ -104,6 +102,20 @@ export async function POST(req: NextRequest) {
     });
   } catch (error) {
     return apiError(error, "Failed to import creator leads.");
+  }
+}
+
+async function attachLeadsToCreatorDirectorySafely(
+  leads: Array<{ id: string }>,
+  inputs: ReturnType<typeof dedupeCreatorLeadInputs>
+) {
+  const results = await Promise.allSettled(
+    leads.map((lead, index) => attachLeadToCreatorDirectory(inputs[index], lead.id))
+  );
+
+  const failedCount = results.filter(result => result.status === "rejected").length;
+  if (failedCount) {
+    console.warn(`Creator import succeeded, but ${failedCount} creator directory sync(s) failed.`);
   }
 }
 
