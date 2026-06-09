@@ -225,8 +225,17 @@ async function parseWorkbook(buffer: Buffer) {
   const headerRow = worksheet.getRow(1);
   const headers = headerRow.values as ExcelJS.CellValue[];
   const rows: Record<string, unknown>[] = [];
+  const hasRecognizedHeaders = headers.some(header => isRecognizedImportHeader(normalizeCellValue(header)));
 
   worksheet.eachRow((row, rowNumber) => {
+    if (!hasRecognizedHeaders) {
+      const headerlessRecord = buildHeaderlessImportRecord(row, worksheet.columnCount);
+      if (Object.values(headerlessRecord).some(value => String(value ?? "").trim())) {
+        rows.push(headerlessRecord);
+      }
+      return;
+    }
+
     if (rowNumber === 1) return;
     const record: Record<string, unknown> = {};
     headers.forEach((header, index) => {
@@ -240,6 +249,109 @@ async function parseWorkbook(buffer: Buffer) {
   });
 
   return rows;
+}
+
+const RECOGNIZED_IMPORT_HEADERS = new Set([
+  "profile url",
+  "url",
+  "link",
+  "platform",
+  "type",
+  "name",
+  "display name",
+  "creator name",
+  "influencer id",
+  "influencers' id",
+  "influencers id",
+  "creator",
+  "creator id",
+  "handle",
+  "username",
+  "account",
+  "city",
+  "location",
+  "category",
+  "categories",
+  "tags",
+  "followers",
+  "follower count",
+  "follower number",
+  "avg views",
+  "avg. views",
+  "average views",
+  "views",
+  "email",
+  "contact email",
+  "phone",
+  "contact phone",
+  "contact",
+  "contact notes",
+  "price",
+  "notes",
+  "remark",
+  "remarks",
+  "主页链接",
+  "达人链接",
+  "链接",
+  "平台",
+  "达人名字",
+  "达人名称",
+  "名字",
+  "名称",
+  "账号",
+  "用户名",
+  "邮箱",
+  "联系邮箱",
+  "报价",
+  "备注",
+]);
+
+function isRecognizedImportHeader(value: string) {
+  return RECOGNIZED_IMPORT_HEADERS.has(value.trim().toLowerCase().replace(/\s+/g, " "));
+}
+
+function buildHeaderlessImportRecord(row: ExcelJS.Row, columnCount: number) {
+  const record: Record<string, unknown> = {};
+
+  for (let index = 1; index <= columnCount; index += 1) {
+    const text = normalizeCellValue(row.getCell(index).value);
+    if (!text) continue;
+
+    record[`column_${index}`] = text;
+
+    const email = extractFirstEmail(text);
+    if (email && !record.email) {
+      record.email = email;
+      continue;
+    }
+
+    const url = extractFirstUrl(text);
+    if (url && !record.link) {
+      record.link = url;
+      continue;
+    }
+
+    if (!record.name && looksLikeCreatorName(text)) {
+      record.name = text;
+    }
+  }
+
+  return record;
+}
+
+function extractFirstEmail(value: string) {
+  return value.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i)?.[0]?.toLowerCase() ?? null;
+}
+
+function extractFirstUrl(value: string) {
+  return value.match(/https?:\/\/[^\s,"'<>]+|(?:www\.)?(?:instagram\.com|tiktok\.com|youtube\.com|youtu\.be|xiaohongshu\.com|xhslink\.com)\/[^\s,"'<>]+/i)?.[0] ?? null;
+}
+
+function looksLikeCreatorName(value: string) {
+  if (extractFirstEmail(value) || extractFirstUrl(value)) return false;
+  if (/^\$?\d+([,.]\d+)?\s*[kKmM]?$/.test(value.trim())) return false;
+  if (/^\d{4}-\d{2}-\d{2}/.test(value.trim())) return false;
+  return value.trim().length >= 2;
 }
 
 function parseCsv(text: string) {
