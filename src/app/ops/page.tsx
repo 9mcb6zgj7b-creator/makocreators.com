@@ -1,4 +1,3 @@
-import type { ReactNode } from "react";
 import { AppShell, Icon } from "@/components/app-shell";
 import { getOpsOverview } from "@/lib/ops-overview";
 import { requirePageContext } from "@/lib/page-auth";
@@ -56,18 +55,25 @@ export default async function OpsPage() {
           {overview.metrics.map(metric => {
             if (metric.label === "Creators tracked") {
               return (
-                <MetricDisclosure label={metric.label} value={metric.value} note={metric.note} key={metric.label}>
-                  <CreatorList creators={overview.creators} emptyText="No creators have been saved yet." />
-                </MetricDisclosure>
+                <MetricLink
+                  href="/ops/creators"
+                  label={metric.label}
+                  value={metric.value}
+                  note={metric.note}
+                  key={metric.label}
+                />
               );
             }
 
             if (metric.label === "Contactable creators") {
-              const contactableCreators = overview.creators.filter(creator => creator.contactEmail);
               return (
-                <MetricDisclosure label={metric.label} value={metric.value} note={metric.note} key={metric.label}>
-                  <CreatorList creators={contactableCreators} emptyText="No creator emails are saved yet." showEmail />
-                </MetricDisclosure>
+                <MetricLink
+                  href="/ops/creators?view=contactable"
+                  label={metric.label}
+                  value={metric.value}
+                  note={metric.note}
+                  key={metric.label}
+                />
               );
             }
 
@@ -112,45 +118,15 @@ function Metric({ label, value, note }: { label: string; value: number; note: st
   );
 }
 
-function MetricDisclosure({ label, value, note, children }: { label: string; value: number; note: string; children: ReactNode }) {
+function MetricLink({ href, label, value, note }: { href: string; label: string; value: number; note: string }) {
   return (
-    <details className="ops-metric-disclosure">
-      <summary>
+    <article className="ops-metric-link-card">
+      <a href={href} aria-label={`Open ${label} list`}>
         <span>{label}</span>
         <strong>{value}</strong>
         <small>{note}</small>
-      </summary>
-      <div className="ops-metric-list">
-        {children}
-      </div>
-    </details>
-  );
-}
-
-function CreatorList({
-  creators,
-  emptyText,
-  showEmail = false,
-}: {
-  creators: Array<{ name: string; handle: string; channel: string; contactEmail?: string | null; stage: string }>;
-  emptyText: string;
-  showEmail?: boolean;
-}) {
-  if (!creators.length) {
-    return <p className="ops-metric-empty">{emptyText}</p>;
-  }
-
-  return (
-    <div className="ops-compact-creator-list">
-      {creators.map(creator => (
-        <article key={`${creator.handle}-${creator.contactEmail || creator.name}`}>
-          <div>
-            <strong>{creator.name}</strong>
-            <small>{creator.handle} · {creator.channel}</small>
-          </div>
-          <span>{showEmail ? creator.contactEmail || "Email needed" : creator.stage}</span>
-        </article>
-      ))}
-    </div>
+        <em>Open List</em>
+      </a>
+    </article>
   );
 }

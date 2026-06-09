@@ -55,6 +55,17 @@ export type OpsMetric = {
   note: string;
 };
 
+export type OpsCreatorListRow = {
+  name: string;
+  platform: string;
+  followerNumber: string;
+  link: string;
+  email: string;
+  price: string;
+  contactDate: string;
+  avgViews: string;
+};
+
 export type OpsOverview = {
   source: "preview" | "workspace";
   creatorSource: Exclude<OpsDataSource, "derived">;
@@ -273,6 +284,129 @@ export async function getOpsOverview(workspaceId: string): Promise<OpsOverview> 
       { label: "Open ops tasks", count: openTaskCount },
     ],
   };
+}
+
+export async function getWorkspaceCreatorListRows(workspaceId: string, options: { contactableOnly?: boolean } = {}): Promise<OpsCreatorListRow[]> {
+  if (!process.env.DATABASE_URL) {
+    return previewCreators
+      .map(creator => ({
+        name: creator.name || "missing",
+        platform: creator.channel || "missing",
+        followerNumber: "missing",
+        link: "missing",
+        email: creator.contactEmail || "missing",
+        price: "missing",
+        contactDate: "missing",
+        avgViews: "missing",
+      }))
+      .filter(row => !options.contactableOnly || row.email !== "missing");
+  }
+
+  const leads = await prisma.creatorLead.findMany({
+    where: { workspaceId },
+    orderBy: [{ updatedAt: "desc" }, { createdAt: "desc" }],
+    select: {
+      rawInput: true,
+      contactEmail: true,
+      displayName: true,
+      handle: true,
+      platform: true,
+      profileUrl: true,
+      followers: true,
+      avgViews: true,
+    },
+  });
+
+  return groupWorkspaceCreatorLeads(leads)
+    .map(group => {
+      const emails = uniqueStrings(group.map(lead => lead.contactEmail ?? ""));
+      const row = {
+        name: getCreatorGroupDisplayName(group),
+        platform: getCreatorGroupPlatforms(group),
+        followerNumber: getCreatorGroupFollowerNumber(group),
+        link: getCreatorGroupLinks(group),
+        email: emails.length ? emails.join(", ") : "missing",
+        price: getCreatorGroupPrice(group),
+        contactDate: getCreatorGroupContactDate(group),
+        avgViews: getCreatorGroupAvgViews(group),
+      };
+      return row;
+    })
+    .filter(row => !options.contactableOnly || row.email !== "missing")
+    .sort((left, right) => {
+      if (left.email === "missing" && right.email !== "missing") return 1;
+      if (left.email !== "missing" && right.email === "missing") return -1;
+      return left.name.localeCompare(right.name);
+    });
+}
+
+function getCreatorGroupDisplayName(group: Array<{ rawInput?: unknown; displayName: string | null; handle: string | null; contactEmail: string | null; profileUrl: string }>) {
+  const rawName = group.flatMap(lead => getRawInputCreatorNames(lead.rawInput)).find(Boolean);
+  const displayName = group.map(lead => lead.displayName).find(Boolean);
+  const handle = group.map(lead => lead.handle).find(Boolean);
+  const emailName = group.map(lead => lead.contactEmail?.split("@")[0]).find(Boolean);
+  const profileHandle = group.flatMap(lead => getRawInputProfileUrls(lead.rawInput).concat(lead.profileUrl).map(extractProfileHandle)).find(Boolean);
+  return rawName || displayName || handle || emailName || profileHandle || "missing";
+}
+
+function getCreatorGroupPlatforms(group: Array<{ rawInput?: unknown; platform: string }>) {
+  const rawPlatforms = group.flatMap(lead => getRawInputPlatforms(lead.rawInput));
+  const platforms = uniqueStrings([...rawPlatforms, ...group.map(lead => formatApprovalType(lead.platform))]);
+  return platforms.length ? platforms.join(", ") : "missing";
+}
+
+function getCreatorGroupFollowerNumber(group: Array<{ rawInput?: unknown; followers?: number | null }>) {
+  const rawFollower = group.flatMap(lead => getRawInputValues(lead.rawInput, ["Follower number", "Followers", "Follower Count"])).find(Boolean);
+  const followers = group.map(lead => lead.followers).filter((value): value is number => typeof value === "number" && Number.isFinite(value));
+  return rawFollower || (followers.length ? Math.max(...followers).toLocaleString() : "missing");
+}
+
+function getCreatorGroupLinks(group: Array<{ rawInput?: unknown; profileUrl: string }>) {
+  const links = uniqueStrings([
+    ...group.flatMap(lead => getRawInputProfileUrls(lead.rawInput)),
+    ...group.map(lead => lead.profileUrl),
+  ].filter(link => !link.startsWith("mailto:")));
+  return links.length ? links.join(", ") : "missing";
+}
+
+function getCreatorGroupPrice(group: Array<{ rawInput?: unknown }>) {
+  return group.flatMap(lead => getRawInputValues(lead.rawInput, ["Price", "price", "报价"])).find(Boolean) || "missing";
+}
+
+function getCreatorGroupContactDate(group: Array<{ rawInput?: unknown }>) {
+  return group.flatMap(lead => getRawInputValues(lead.rawInput, ["Contact Date", "contact date", "Contacted At"])).find(Boolean) || "missing";
+}
+
+function getCreatorGroupAvgViews(group: Array<{ rawInput?: unknown; avgViews?: number | null }>) {
+  const rawViews = group.flatMap(lead => getRawInputValues(lead.rawInput, ["Avg. views", "Avg views", "Average views", "Views"])).find(Boolean);
+  const views = group.map(lead => lead.avgViews).filter((value): value is number => typeof value === "number" && Number.isFinite(value));
+  return rawViews || (views.length ? Math.max(...views).toLocaleString() : "missing");
+}
+
+function getRawInputValues(rawInput: unknown, aliases: string[]) {
+  return getRawInputRows(rawInput)
+    .map(row => getRawRowValue(row, aliases))
+    .filter((value): value is string => Boolean(value));
+}
+
+function getRawInputPlatforms(rawInput: unknown) {
+  const platforms: string[] = [];
+  if (isRecord(rawInput) && Array.isArray(rawInput.platforms)) {
+    platforms.push(...rawInput.platforms.filter((value): value is string => typeof value === "string").map(formatApprovalType));
+  }
+  for (const row of getRawInputRows(rawInput)) {
+    const platform = getRawRowValue(row, ["Type", "Platform", "platform", "type"]);
+    if (platform) platforms.push(formatImportedPlatform(platform));
+  }
+  return platforms;
+}
+
+function formatImportedPlatform(platform: string) {
+  const normalized = platform.trim().toLowerCase();
+  if (["ins", "ig", "instagram"].includes(normalized)) return "Instagram";
+  if (["tiktok", "tik tok", "tt"].includes(normalized)) return "Tiktok";
+  if (["youtube", "yt"].includes(normalized)) return "Youtube";
+  return platform.trim();
 }
 
 async function getWorkspaceDrafts(workspaceId: string): Promise<OpsDraft[]> {
