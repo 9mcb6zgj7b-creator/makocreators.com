@@ -2124,12 +2124,19 @@ h2 {
   padding: 0;
 }
 
-.ops-metric-link-card a {
+.ops-metric-link-card a,
+.ops-metric-link-card button {
   display: grid;
   gap: 4px;
+  width: 100%;
   min-height: 132px;
+  border: 0;
   padding: 18px;
+  background: transparent;
   color: inherit;
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
   text-decoration: none;
 }
 
@@ -2147,9 +2154,12 @@ h2 {
   text-transform: uppercase;
 }
 
-.ops-metric-link-card a:hover em {
-  background: var(--accent);
-  color: #ffffff;
+.ops-metric-link-card a:hover em,
+.ops-metric-link-card button:hover em {
+  border-color: var(--accent);
+  background: #fff3ea;
+  color: var(--accent);
+  box-shadow: 0 0 0 2px rgba(255, 90, 31, 0.12);
 }
 
 .ops-metric-disclosure {
@@ -2336,6 +2346,66 @@ h2 {
   color: #111114;
   font-size: 13px;
   font-weight: 750;
+}
+
+.ops-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: grid;
+  place-items: center;
+  background: rgba(17, 17, 20, 0.42);
+  padding: 28px;
+}
+
+.ops-modal {
+  width: min(1180px, 100%);
+  max-height: min(82vh, 840px);
+  overflow: hidden;
+  border: 1px solid rgba(226, 230, 237, 0.9);
+  border-radius: 24px;
+  background: #ffffff;
+  box-shadow: 0 34px 90px rgba(15, 23, 42, 0.28);
+}
+
+.ops-modal-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+  border-bottom: 1px solid #eef0f4;
+  padding: 22px;
+}
+
+.ops-modal-header h2 {
+  margin: 0;
+  font-size: 28px;
+  font-weight: 950;
+  letter-spacing: -0.04em;
+}
+
+.ops-modal-header p:not(.section-eyebrow) {
+  max-width: 720px;
+  margin: 6px 0 0;
+  color: var(--muted);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.ops-modal-header button {
+  border: 1px solid #ffd0bf;
+  border-radius: 999px;
+  background: #fff7f2;
+  color: var(--accent);
+  cursor: pointer;
+  padding: 8px 13px;
+  font-size: 12px;
+  font-weight: 950;
+}
+
+.ops-modal .creator-list-table {
+  max-height: calc(min(82vh, 840px) - 118px);
+  overflow: auto;
 }
 
 .creator-list-empty {

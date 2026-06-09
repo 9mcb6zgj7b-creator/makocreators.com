@@ -1,12 +1,17 @@
 import { AppShell, Icon } from "@/components/app-shell";
-import { getOpsOverview } from "@/lib/ops-overview";
+import { OpsMetricCards } from "@/components/ops-metric-cards";
+import { getOpsOverview, getWorkspaceCreatorListRows } from "@/lib/ops-overview";
 import { requirePageContext } from "@/lib/page-auth";
 
 export const dynamic = "force-dynamic";
 
 export default async function OpsPage() {
   const { user, workspace, role } = await requirePageContext("/ops");
-  const overview = await getOpsOverview(workspace.id);
+  const [overview, creatorRows, contactableCreatorRows] = await Promise.all([
+    getOpsOverview(workspace.id),
+    getWorkspaceCreatorListRows(workspace.id),
+    getWorkspaceCreatorListRows(workspace.id, { contactableOnly: true }),
+  ]);
 
   return (
     <AppShell
@@ -51,35 +56,7 @@ export default async function OpsPage() {
           ))}
         </section>
 
-        <section className="ops-metrics" aria-label="Operations metrics">
-          {overview.metrics.map(metric => {
-            if (metric.label === "Creators tracked") {
-              return (
-                <MetricLink
-                  href="/ops/creators"
-                  label={metric.label}
-                  value={metric.value}
-                  note={metric.note}
-                  key={metric.label}
-                />
-              );
-            }
-
-            if (metric.label === "Contactable creators") {
-              return (
-                <MetricLink
-                  href="/ops/creators?view=contactable"
-                  label={metric.label}
-                  value={metric.value}
-                  note={metric.note}
-                  key={metric.label}
-                />
-              );
-            }
-
-            return <Metric label={metric.label} value={metric.value} note={metric.note} key={metric.label} />;
-          })}
-        </section>
+        <OpsMetricCards metrics={overview.metrics} creators={creatorRows} contactableCreators={contactableCreatorRows} />
       </section>
     </AppShell>
   );
@@ -107,26 +84,3 @@ const coreWorkflowSteps = [
     summary: "The user approves and performs external actions outside Mako.",
   },
 ];
-
-function Metric({ label, value, note }: { label: string; value: number; note: string }) {
-  return (
-    <article>
-      <span>{label}</span>
-      <strong>{value}</strong>
-      <small>{note}</small>
-    </article>
-  );
-}
-
-function MetricLink({ href, label, value, note }: { href: string; label: string; value: number; note: string }) {
-  return (
-    <article className="ops-metric-link-card">
-      <a href={href} aria-label={`Open ${label} list`}>
-        <span>{label}</span>
-        <strong>{value}</strong>
-        <small>{note}</small>
-        <em>Open List</em>
-      </a>
-    </article>
-  );
-}
