@@ -1,7 +1,7 @@
 import { NextRequest } from "next/server";
 import { z } from "zod";
 import { Prisma } from "@prisma/client";
-import { apiError, ok } from "@/lib/api";
+import { apiError, notFound, ok } from "@/lib/api";
 import { getRequestContext } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 
@@ -32,7 +32,7 @@ export async function GET(_req: NextRequest, { params }: Params) {
       },
     });
     if (!task) {
-      return ok({ task: null }, { status: 404 });
+      return notFound("Task not found.");
     }
     return ok({ task });
   } catch (error) {
@@ -49,7 +49,7 @@ export async function PATCH(req: NextRequest, { params }: Params) {
       select: { id: true },
     });
     if (!existing) {
-      return ok({ task: null }, { status: 404 });
+      return notFound("Task not found.");
     }
 
     const task = await prisma.dashboardTask.update({

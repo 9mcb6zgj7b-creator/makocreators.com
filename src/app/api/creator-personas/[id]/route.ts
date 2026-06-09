@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import { z } from "zod";
-import { apiError, ok } from "@/lib/api";
+import { apiError, notFound, ok } from "@/lib/api";
 import { getRequestContext } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 
@@ -19,7 +19,7 @@ export async function GET(_: NextRequest, { params }: { params: { id: string } }
     const persona = await prisma.creatorPersona.findFirst({
       where: { id: params.id, workspaceId: workspace.id },
     });
-    if (!persona) return ok({ error: "Not found" }, { status: 404 });
+    if (!persona) return notFound("Creator persona not found.");
     return ok({ persona });
   } catch (error) {
     return apiError(error, "Failed to load creator persona.");
@@ -34,7 +34,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
       where: { id: params.id, workspaceId: workspace.id },
       select: { id: true },
     });
-    if (!existing) return ok({ error: "Not found" }, { status: 404 });
+    if (!existing) return notFound("Creator persona not found.");
 
     const persona = await prisma.creatorPersona.update({
       where: { id: params.id },

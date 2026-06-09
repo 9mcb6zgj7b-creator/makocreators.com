@@ -10,6 +10,10 @@ export function created<T>(data: T) {
   return NextResponse.json(data, { status: 201 });
 }
 
+export function notFound(message = "Not found.") {
+  return NextResponse.json({ error: message }, { status: 404 });
+}
+
 export function apiError(error: unknown, fallback = "Request failed.") {
   if (error instanceof AuthError) {
     return NextResponse.json({ error: error.message }, { status: error.status });
@@ -20,7 +24,8 @@ export function apiError(error: unknown, fallback = "Request failed.") {
   }
 
   if (error instanceof Error) {
-    return NextResponse.json({ error: error.message || fallback }, { status: 500 });
+    const message = process.env.NODE_ENV === "development" ? error.message || fallback : fallback;
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 
   return NextResponse.json({ error: fallback }, { status: 500 });

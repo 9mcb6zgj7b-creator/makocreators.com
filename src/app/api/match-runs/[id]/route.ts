@@ -1,5 +1,5 @@
 import { NextRequest } from "next/server";
-import { apiError, ok } from "@/lib/api";
+import { apiError, notFound, ok } from "@/lib/api";
 import { getRequestContext } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 
@@ -18,7 +18,7 @@ export async function GET(_: NextRequest, { params }: { params: { id: string } }
         },
       },
     });
-    if (!run) return ok({ error: "Not found" }, { status: 404 });
+    if (!run) return notFound("Match run not found.");
     return ok({ run });
   } catch (error) {
     return apiError(error, "Failed to load match run.");

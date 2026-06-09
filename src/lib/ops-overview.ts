@@ -2,6 +2,7 @@ import { prisma } from "@/lib/db";
 
 export type OpsPathClass = "seed" | "ai" | "hold" | "neutral";
 export type OpsRiskLevel = "Low" | "Medium" | "High";
+export type OpsDataSource = "workspace" | "preview" | "derived";
 
 export type OpsCreator = {
   name: string;
@@ -19,11 +20,21 @@ export type OpsCreator = {
 
 export type OpsApproval = {
   id?: string;
+  isPreview?: boolean;
   type: string;
   title: string;
   summary: string;
   risk: OpsRiskLevel;
   status?: string;
+};
+
+export type OpsDraft = {
+  id?: string;
+  title: string;
+  summary: string;
+  status: string;
+  channel?: string;
+  isPreview?: boolean;
 };
 
 export type OpsPipelineStage = {
@@ -45,8 +56,12 @@ export type OpsMetric = {
 
 export type OpsOverview = {
   source: "preview" | "workspace";
+  creatorSource: Exclude<OpsDataSource, "derived">;
+  draftSource: OpsDataSource;
+  approvalSource: Exclude<OpsDataSource, "derived">;
   metrics: OpsMetric[];
   creators: OpsCreator[];
+  drafts: OpsDraft[];
   approvals: OpsApproval[];
   pipeline: OpsPipelineStage[];
   agentSteps: OpsAgentStep[];
@@ -110,18 +125,21 @@ const previewCreators: OpsCreator[] = [
 
 const previewApprovals: OpsApproval[] = [
   {
+    isPreview: true,
     type: "Send outreach",
     title: "Approve Ava outreach draft",
     summary: "Personalized product seeding message is ready. Human approval is required before any external send.",
     risk: "Medium",
   },
   {
+    isPreview: true,
     type: "Send follow-up",
     title: "Approve Jules follow-up",
     summary: "Follow-up draft avoids payment language and asks only about product trial interest.",
     risk: "Medium",
   },
   {
+    isPreview: true,
     type: "Usage rights",
     title: "Review usage rights boundary",
     summary: "Mako prepared a concept, but usage rights must be handled by a human before paid media.",
@@ -135,6 +153,14 @@ const previewPipeline: OpsPipelineStage[] = [
   { label: "Needs approval", count: 3 },
   { label: "Approved for action", count: 1 },
 ];
+
+const previewDrafts: OpsDraft[] = previewCreators.slice(0, 3).map(creator => ({
+  title: creator.name,
+  summary: creator.draft,
+  status: "Preview",
+  channel: creator.channel,
+  isPreview: true,
+}));
 
 const previewAgentSteps: OpsAgentStep[] = [
   {
@@ -183,7 +209,7 @@ export async function getOpsOverview(workspaceId: string): Promise<OpsOverview> 
     return buildPreviewOverview("preview");
   }
 
-  const [creatorLeadCount, matchRunCount, draftCount, openTaskCount, approvals] = await Promise.all([
+  const [creatorLeadCount, matchRunCount, draftCount, openTaskCount, approvalResult, creatorRecommendations, workspaceDrafts] = await Promise.all([
     prisma.creatorLead.count({ where: { workspaceId } }),
     prisma.creatorMatchRun.count({ where: { workspaceId } }),
     prisma.outreachDraft.count({ where: { workspaceId, status: "DRAFT" } }),
@@ -194,46 +220,130 @@ export async function getOpsOverview(workspaceId: string): Promise<OpsOverview> 
       },
     }),
     getPendingApprovals(workspaceId),
+    getCreatorRecommendations(workspaceId),
+    getWorkspaceDrafts(workspaceId),
   ]);
 
   const overview = buildPreviewOverview("workspace");
-  const approvalItems = approvals.length ? approvals : overview.approvals;
+  const approvalItems = approvalResult.unavailable ? overview.approvals : approvalResult.items;
+  const approvalCount = approvalResult.unavailable ? overview.approvals.length : approvalResult.items.length;
+  const creatorSource = creatorRecommendations.length ? "workspace" : "preview";
+  const creators = creatorRecommendations.length ? creatorRecommendations : overview.creators;
+  const fallbackDraftSource = creatorSource === "workspace" ? "derived" : "preview";
+  const draftSource: OpsDataSource = workspaceDrafts.length ? "workspace" : fallbackDraftSource;
+  const drafts = workspaceDrafts.length ? workspaceDrafts : buildDraftsFromCreators(creators, fallbackDraftSource);
+  const highFitCreators = creators.filter(creator => creator.score >= 80).length;
+  const aiCandidates = creators.filter(creator => creator.pathClass === "ai").length;
 
   return {
     ...overview,
+    creatorSource,
+    draftSource,
+    approvalSource: approvalResult.unavailable ? "preview" : "workspace",
+    creators,
+    drafts,
     approvals: approvalItems,
     metrics: [
       {
         label: "Creators tracked",
-        value: creatorLeadCount || overview.metrics[0].value,
+        value: creatorLeadCount || creators.length,
         note: creatorLeadCount ? "Workspace creator leads" : "Demo shortlist coverage",
       },
       {
-        label: "Match runs",
-        value: matchRunCount || overview.metrics[1].value,
-        note: matchRunCount ? "Workspace scoring runs" : "Score 80 or higher",
+        label: "High-fit creators",
+        value: highFitCreators,
+        note: matchRunCount ? "Latest scoring signal" : "Score 80 or higher",
       },
       {
-        label: "Drafts pending",
-        value: draftCount || overview.metrics[2].value,
-        note: draftCount ? "Draft outreach items" : "Human review queue",
+        label: "Pending approvals",
+        value: approvalCount,
+        note: approvalResult.unavailable ? "Preview human review queue" : "Workspace human review queue",
       },
       {
-        label: "Approval items",
-        value: approvals.length || overview.metrics[3].value,
-        note: approvals.length ? "Workspace human review queue" : "No false first-person claims",
+        label: "AI collab candidates",
+        value: aiCandidates,
+        note: "No false first-person claims",
       },
     ],
     pipeline: [
-      overview.pipeline[0],
-      overview.pipeline[1],
-      { label: "Needs approval", count: approvals.length || overview.pipeline[2].count },
-      { label: "Open ops tasks", count: openTaskCount || overview.pipeline[3].count },
+      { label: "Scored", count: creatorLeadCount || creators.length },
+      { label: "Draft ready", count: draftCount },
+      { label: "Needs approval", count: approvalCount },
+      { label: "Open ops tasks", count: openTaskCount },
     ],
   };
 }
 
-async function getPendingApprovals(workspaceId: string): Promise<OpsApproval[]> {
+async function getWorkspaceDrafts(workspaceId: string): Promise<OpsDraft[]> {
+  const drafts = await prisma.outreachDraft.findMany({
+    where: { workspaceId },
+    orderBy: [{ updatedAt: "desc" }, { createdAt: "desc" }],
+    take: 5,
+    select: {
+      id: true,
+      channel: true,
+      subject: true,
+      body: true,
+      status: true,
+    },
+  });
+
+  return drafts.map(draft => ({
+    id: draft.id,
+    title: draft.subject || `${formatApprovalType(draft.channel)} outreach draft`,
+    summary: summarizeDraftBody(draft.body),
+    status: formatApprovalType(draft.status),
+    channel: formatApprovalType(draft.channel),
+  }));
+}
+
+async function getCreatorRecommendations(workspaceId: string): Promise<OpsCreator[]> {
+  const leads = await prisma.creatorLead.findMany({
+    where: { workspaceId },
+    orderBy: [{ updatedAt: "desc" }, { createdAt: "desc" }],
+    take: 8,
+    select: {
+      id: true,
+      displayName: true,
+      handle: true,
+      platform: true,
+      city: true,
+      categories: true,
+      followers: true,
+      avgViews: true,
+      status: true,
+      notes: true,
+      contactEmail: true,
+      contactPhone: true,
+    },
+  });
+
+  return leads.map(lead => {
+    const score = scoreCreatorLead(lead);
+    const hasContact = Boolean(lead.contactEmail || lead.contactPhone);
+    const pathClass: OpsPathClass = score < 70 ? "hold" : hasContact ? "seed" : "ai";
+    const path = pathClass === "seed" ? "Product seeding" : pathClass === "ai" ? "AI content collab" : "Hold";
+    const name = lead.displayName || lead.handle || "Unnamed creator";
+    const handle = lead.handle || `lead-${lead.id.slice(0, 6)}`;
+    const categoryText = lead.categories.length ? lead.categories.join(", ") : "General creator";
+
+    return {
+      name,
+      handle,
+      channel: formatApprovalType(lead.platform),
+      audience: lead.city ? `${lead.city} ${categoryText}` : categoryText,
+      score,
+      path,
+      pathClass,
+      stage: formatApprovalType(lead.status),
+      risk: getCreatorRisk(pathClass, hasContact),
+      driver: buildCreatorDriver(score, categoryText, lead.followers, lead.avgViews),
+      draft: buildCreatorDraft(name, pathClass),
+    };
+  });
+}
+
+async function getPendingApprovals(workspaceId: string): Promise<{ items: OpsApproval[]; unavailable: boolean }> {
   try {
     const approvals = await prisma.approval.findMany({
       where: {
@@ -244,17 +354,81 @@ async function getPendingApprovals(workspaceId: string): Promise<OpsApproval[]> 
       take: 10,
     });
 
-    return approvals.map(approval => ({
-      id: approval.id,
-      type: formatApprovalType(approval.type),
-      title: approval.title,
-      summary: approval.summary,
-      risk: formatRiskLevel(approval.riskLevel),
-      status: approval.status,
-    }));
+    return {
+      unavailable: false,
+      items: approvals.map(approval => ({
+        id: approval.id,
+        type: formatApprovalType(approval.type),
+        title: approval.title,
+        summary: approval.summary,
+        risk: formatRiskLevel(approval.riskLevel),
+        status: approval.status,
+      })),
+    };
   } catch {
-    return [];
+    return { items: [], unavailable: true };
   }
+}
+
+function scoreCreatorLead(lead: {
+  categories: string[];
+  followers: number | null;
+  avgViews: number | null;
+  status: string;
+  contactEmail: string | null;
+  contactPhone: string | null;
+}) {
+  let score = 58;
+
+  if (lead.categories.length) score += 10;
+  if ((lead.followers ?? 0) >= 10_000) score += 10;
+  if ((lead.avgViews ?? 0) >= 2_500) score += 8;
+  if (lead.contactEmail || lead.contactPhone) score += 6;
+  if (lead.status === "ANALYZED" || lead.status === "APPROVED") score += 8;
+  if (lead.status === "NEEDS_REVIEW") score -= 6;
+  if (lead.status === "FAILED" || lead.status === "ARCHIVED") score -= 18;
+
+  return Math.max(40, Math.min(96, score));
+}
+
+function getCreatorRisk(pathClass: OpsPathClass, hasContact: boolean) {
+  if (pathClass === "hold") return "Brand safety or missing signal review needed";
+  if (pathClass === "ai") return "Usage rights and false first-person claims gated";
+  return hasContact ? "Sample shipment approval required" : "Contact review required before seeding";
+}
+
+function buildCreatorDriver(score: number, categoryText: string, followers: number | null, avgViews: number | null) {
+  const reach = followers ? `${followers.toLocaleString()} followers` : "unknown follower count";
+  const views = avgViews ? `${avgViews.toLocaleString()} average views` : "limited view signal";
+  return `${categoryText} fit with ${reach}, ${views}, and an internal readiness score of ${score}.`;
+}
+
+function buildCreatorDraft(name: string, pathClass: OpsPathClass) {
+  if (pathClass === "hold") {
+    return `Hold outreach to ${name} until brand-safety and campaign-fit context is reviewed.`;
+  }
+
+  if (pathClass === "ai") {
+    return `Prepare a creator-style script concept for ${name} without implying product use or usage-rights approval.`;
+  }
+
+  return `Prepare a product seeding note for ${name}, then route any sample shipment or external send to approval.`;
+}
+
+function buildDraftsFromCreators(creators: OpsCreator[], source: Extract<OpsDataSource, "preview" | "derived">): OpsDraft[] {
+  return creators.slice(0, 3).map(creator => ({
+    title: creator.name,
+    summary: creator.draft,
+    status: creator.stage,
+    channel: creator.channel,
+    isPreview: source === "preview",
+  }));
+}
+
+function summarizeDraftBody(body: string) {
+  const normalized = body.replace(/\s+/g, " ").trim();
+  if (normalized.length <= 220) return normalized;
+  return `${normalized.slice(0, 217).trim()}...`;
 }
 
 function formatApprovalType(type: string) {
@@ -277,13 +451,17 @@ function buildPreviewOverview(source: OpsOverview["source"]): OpsOverview {
 
   return {
     source,
+    creatorSource: "preview",
+    draftSource: "preview",
+    approvalSource: "preview",
     metrics: [
       { label: "Creators scored", value: previewCreators.length, note: "Demo shortlist coverage" },
       { label: "High-fit creators", value: highFit, note: "Score 80 or higher" },
-      { label: "Approval items", value: previewApprovals.length, note: "Human review queue" },
+      { label: "Pending approvals", value: previewApprovals.length, note: "Preview human review queue" },
       { label: "AI collab candidates", value: aiCandidates, note: "No false first-person claims" },
     ],
     creators: previewCreators,
+    drafts: previewDrafts,
     approvals: previewApprovals,
     pipeline: previewPipeline,
     agentSteps: previewAgentSteps,

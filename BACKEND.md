@@ -8,12 +8,15 @@ This product is owned end to end by Codex: frontend, backend, authentication, da
 - ORM: Prisma
 - Database: PostgreSQL
 - Validation: Zod
+- API errors: auth and validation errors return actionable messages; unexpected server errors return route-level fallback copy in production so internal database or environment details are not exposed to users.
 
 ## API Routes
 
 Health:
 
 - `GET /api/health`
+
+The health response includes service status, runtime environment, whether `DATABASE_URL` is configured, and whether local preview auth is enabled.
 
 Auth:
 
@@ -25,6 +28,12 @@ Auth:
 Dashboard:
 
 - `GET /api/dashboard/home`
+
+Ops:
+
+- `GET /api/ops/overview`
+
+The ops overview response includes section source labels, metrics, creator recommendations, safe drafts, pending approvals, pipeline counts, agent workflow steps, and blocked external actions.
 
 Creator personas:
 
@@ -55,6 +64,12 @@ Outreach:
 
 - `GET /api/outreach-drafts`
 - `POST /api/outreach-drafts`
+
+Approvals:
+
+- `GET /api/approvals`
+- `POST /api/approvals`
+- `PATCH /api/approvals/:id`
 
 Campaigns:
 
@@ -88,6 +103,8 @@ Frontend can wire this sequence:
 14. Create shortlist with `POST /api/shortlists`.
 15. Add creators to shortlist with `POST /api/shortlists/:id/items`.
 16. Create outreach draft with `POST /api/outreach-drafts`.
+17. Review approval items with `GET /api/approvals` or the `/ops` cockpit.
+18. Mark internal approval decisions with `PATCH /api/approvals/:id`.
 
 ## Frontend Connection
 
@@ -96,8 +113,12 @@ Product routes:
 - `/login`: email or phone sign-in
 - `/dashboard`: authenticated home
 - `/creators`: authenticated creator workspace and intake
+- `/creators/import`: authenticated creator lead link and spreadsheet import
 - `/campaigns`: authenticated campaign list
+- `/campaigns/:id`: authenticated campaign detail and next-step routing
 - `/reports`: authenticated reports dashboard
+- `/billing`: authenticated billing readiness page
+- `/support`: authenticated support routing page
 
 See `FRONTEND_BACKEND_FLOW.md` for the full login, session, workspace, and logout path.
 
@@ -129,6 +150,8 @@ Task creation example:
 ```
 
 ## Creator Lead Intake
+
+The authenticated `/creators/import` page connects to the creator lead APIs. In local no-database preview mode, the page remains visible for workflow review but warns that imports need `DATABASE_URL` before leads can be saved.
 
 Direct link submission:
 

@@ -6,9 +6,17 @@ Mako prepares creator operations work and routes sensitive actions to humans. It
 
 ## Workflow
 
+Core MVP path:
+
+1. Start with creator leads.
+2. Score creators and split each lead into product seeding, AI content collaboration, hold, or review.
+3. Prepare safe outreach, script, and next-step drafts.
+4. Route sensitive actions to the approval queue.
+5. Let the human approve and execute any external action outside Mako.
+
 ```mermaid
 flowchart TD
-  A["Creator shortlist"] --> B["Normalize creator profile"]
+  A["Creator leads"] --> B["Normalize creator profile"]
   B --> C["Score creator fit"]
   C --> D{"Authentic product experience required?"}
   D -- "Yes" --> E["Recommend product seeding"]
@@ -125,7 +133,9 @@ Approval status options:
 - `NEEDS_CHANGES`
 - `ARCHIVED`
 
-Approval records can reference a campaign, creator, or outreach draft, but they remain internal workflow records.
+Approval records can reference a campaign, creator, or outreach draft, but they remain internal workflow records. The `/ops` approval queue can mark a real approval item as approved, rejected, or needing changes. These buttons only update Mako's internal approval state; they do not send the outreach, ship samples, commit payment, grant usage rights, publish content, or launch ads.
+
+If the workspace has no pending approvals, `/ops` shows an empty approval state. Preview approval examples are used only when local preview or database fallback is needed.
 
 ### 7. Human Execution
 

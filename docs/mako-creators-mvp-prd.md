@@ -18,6 +18,14 @@ Creator seeding is operationally messy because teams must score creator fit, avo
 
 Help a brand move from a creator shortlist to an approval-ready campaign workflow in one session.
 
+The core MVP path is:
+
+1. Start with creator leads.
+2. Score creators and split each lead into product seeding, AI content collaboration, hold, or review.
+3. Prepare safe outreach, script, and next-step drafts.
+4. Route sensitive actions to the approval queue.
+5. Let the human approve and execute any external action outside Mako.
+
 The user should be able to:
 
 - See which creators are strongest fits and why.
@@ -98,6 +106,8 @@ Approval categories:
 - Approve AI content script.
 
 All approval actions remain internal in the MVP.
+When an approval item is backed by a persisted `Approval` record, `/ops` can mark it as `APPROVED`, `NEEDS_CHANGES`, or `REJECTED`. This records the human review decision only; the user still performs any external action outside the MVP.
+When the workspace has no pending approvals, `/ops` shows an empty queue. Demo approval examples are used only for local preview mode or database fallback.
 
 ### 5. Agent Workflow
 
@@ -125,6 +135,10 @@ Included now:
 - `/ops` local prototype inside the real Next.js project.
 - Preview seeded data with a shared overview data layer.
 - Persistent `Approval` model and internal approval API.
+- Workspace creator leads mapped into ops recommendations when real lead data exists.
+- Workspace outreach drafts shown in the safe draft package when real drafts exist.
+- Workspace approval queue with approve, needs changes, reject, and empty states.
+- Section-level source labels for workspace data, derived draft suggestions, and preview fallback data.
 - English UI copy.
 - Safety boundary surfaced in the product.
 

@@ -1,6 +1,7 @@
 import { createHash, randomBytes, randomInt } from "node:crypto";
 import { cookies } from "next/headers";
 import { prisma } from "@/lib/db";
+import { deliverLoginCode } from "@/lib/delivery";
 
 export const SESSION_COOKIE = "maco_session";
 export const PREVIEW_SESSION_COOKIE = "maco_preview_session";
@@ -51,10 +52,12 @@ export async function createLoginChallenge(input: string) {
     },
   });
 
+  const delivered = await deliverLoginCode({ ...normalized, code });
+
   return {
     code,
     identifier: normalized.identifier,
-    delivery: process.env.AUTH_SHOW_DEV_CODE === "true" ? "local-preview" : "sent",
+    delivery: delivered.delivery,
   };
 }
 

@@ -79,6 +79,16 @@ export function DashboardHome({ user, dashboard }: { user: AppShellUser; dashboa
             <span className="section-eyebrow">MVP workspace</span>
             <h2 id="ops-entry-title">Creator Ops Cockpit</h2>
             <p>Review creator scores, seeding versus AI content recommendations, approval gates, safe drafts, and the latest agent workflow.</p>
+            <div className="ops-entry-stats" aria-label="Creator ops status">
+              <span>
+                <strong>{dashboard.stats.pendingApprovals}</strong>
+                Pending approvals
+              </span>
+              <span>
+                <strong>{dashboard.stats.pendingCreatorLeads}</strong>
+                Creator leads waiting review
+              </span>
+            </div>
           </div>
           <a className="new-plan-button" href="/ops">
             Open Ops
@@ -95,8 +105,8 @@ export function DashboardHome({ user, dashboard }: { user: AppShellUser; dashboa
             <span>Creators pending review</span>
           </article>
           <article>
-            <strong>{dashboard.stats.shortlists}</strong>
-            <span>Shortlists</span>
+            <strong>{dashboard.stats.pendingApprovals}</strong>
+            <span>Pending approvals</span>
           </article>
           <article>
             <strong>{dashboard.stats.matchRuns}</strong>

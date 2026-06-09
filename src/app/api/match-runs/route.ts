@@ -1,7 +1,7 @@
 import { NextRequest } from "next/server";
 import { z } from "zod";
 import { Prisma } from "@prisma/client";
-import { apiError, created, ok } from "@/lib/api";
+import { apiError, created, notFound, ok } from "@/lib/api";
 import { getRequestContext } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { createMatchRun } from "@/lib/creator-matching";
@@ -44,7 +44,7 @@ export async function POST(req: NextRequest) {
         where: { id: body.personaId, workspaceId: workspace.id },
         select: { id: true },
       });
-      if (!persona) return ok({ error: "Persona not found" }, { status: 404 });
+      if (!persona) return notFound("Persona not found.");
     }
 
     const run = await createMatchRun({

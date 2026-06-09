@@ -1,7 +1,7 @@
 import { NextRequest } from "next/server";
 import { ApprovalStatus } from "@prisma/client";
 import { z } from "zod";
-import { apiError, ok } from "@/lib/api";
+import { apiError, notFound, ok } from "@/lib/api";
 import { getRequestContext } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 
@@ -23,7 +23,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     });
 
     if (!existing) {
-      return ok({ approval: null }, { status: 404 });
+      return notFound("Approval not found.");
     }
 
     const isReviewedStatus = body.status === "APPROVED" || body.status === "REJECTED" || body.status === "NEEDS_CHANGES";

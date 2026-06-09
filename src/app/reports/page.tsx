@@ -88,7 +88,7 @@ export default async function ReportsPage() {
                   <Icon name="edit" />
                 </button>
               </div>
-              <p>Your budget determines how many creators Mako Creator can invite.</p>
+              <p>Your budget helps Mako Creator prepare creator recommendations for human review.</p>
               <span>{formatBudget(summary.totalBudgetMin, summary.totalBudgetMax)}</span>
             </article>
           </div>

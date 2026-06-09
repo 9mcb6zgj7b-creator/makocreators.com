@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import { z } from "zod";
-import { apiError, created, ok } from "@/lib/api";
+import { apiError, created, notFound, ok } from "@/lib/api";
 import { getRequestContext } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 
@@ -21,14 +21,14 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       where: { id: params.id, workspaceId: workspace.id },
       select: { id: true },
     });
-    if (!shortlist) return ok({ error: "Shortlist not found" }, { status: 404 });
+    if (!shortlist) return notFound("Shortlist not found.");
 
     if (body.personaId) {
       const persona = await prisma.creatorPersona.findFirst({
         where: { id: body.personaId, workspaceId: workspace.id },
         select: { id: true },
       });
-      if (!persona) return ok({ error: "Persona not found" }, { status: 404 });
+      if (!persona) return notFound("Persona not found.");
     }
 
     const item = await prisma.shortlistItem.upsert({

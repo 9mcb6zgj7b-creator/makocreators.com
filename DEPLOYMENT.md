@@ -55,6 +55,7 @@ Required when features are connected:
 
 - `OPENAI_API_KEY`
 - `RESEND_API_KEY`
+- `RESEND_FROM_EMAIL`
 - `TWILIO_ACCOUNT_SID`
 - `TWILIO_AUTH_TOKEN`
 - `TWILIO_FROM_PHONE`
@@ -71,11 +72,13 @@ Before production launch:
 3. Confirm `DATABASE_URL` points to the production PostgreSQL database.
 4. Run Prisma migration or `prisma db push` for the target environment.
 5. Confirm `AUTH_SHOW_DEV_CODE=false` in production.
+6. Configure `RESEND_API_KEY` and `RESEND_FROM_EMAIL` so email login codes are delivered.
 6. Run `npm run build`.
-7. Connect git remote.
-8. Deploy preview.
-9. Test login, creator brief, creator matching, shortlist, and outreach flows.
-10. Add production domain.
+7. Check `/api/health` and confirm `databaseConfigured` is `true` and `localPreviewAuthEnabled` is `false`.
+8. Connect git remote.
+9. Deploy preview.
+10. Test login, creator brief, creator matching, shortlist, approval queue, and outreach flows.
+11. Add production domain.
 
 ## Backend Launch Notes For Codex
 

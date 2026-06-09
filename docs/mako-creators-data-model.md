@@ -32,6 +32,7 @@ Current behavior:
 - Without `DATABASE_URL`, the page and API return preview data for the MVP cockpit.
 - With `DATABASE_URL`, the metrics start reading existing workspace counts from creator leads, match runs, outreach drafts, and dashboard tasks.
 - Creator recommendations, approval examples, pipeline stages, and agent workflow still use preview data until live scoring and approval persistence are connected.
+- The overview contract includes per-section source flags for creators, drafts, and approvals: `workspace`, `preview`, or `derived`. This lets the UI and API consumers distinguish real workspace data from fallback data.
 
 This keeps the prototype runnable while giving the frontend, API, and future agent code one shared overview contract.
 
@@ -162,7 +163,11 @@ Current API:
 - `PATCH /api/approvals/:id`
 - `POST /api/outreach-drafts` creates an `OutreachDraft` and a linked `SEND_OUTREACH` approval item in the same transaction.
 
-`/ops` reads pending approvals through `getOpsOverview()`. If the database is unavailable or the approval table has not been pushed yet, the MVP falls back to preview approval examples so the cockpit remains usable locally.
+`/ops` reads pending approvals through `getOpsOverview()`. If the database is unavailable or the approval table has not been pushed yet, the MVP falls back to preview approval examples so the cockpit remains usable locally. If the approval table is available and the workspace has no pending approvals, `/ops` shows an empty approval state instead of demo approval items.
+
+`/ops` also reads workspace `CreatorLead` rows and maps them into creator recommendations with an internal MVP scoring heuristic. The current heuristic uses category coverage, follower signal, average views, contact readiness, and lead status. When no workspace creator leads exist, the cockpit falls back to preview creator recommendations.
+
+`/ops` reads recent workspace `OutreachDraft` rows for the safe draft package. If no workspace drafts exist, the cockpit falls back to draft suggestions generated from the current creator recommendations. Draft suggestions based on real creator leads are marked as `derived`; demo suggestions are marked as `preview`.
 
 ### Campaign Pipeline
 

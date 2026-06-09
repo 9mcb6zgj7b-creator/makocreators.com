@@ -6,7 +6,7 @@ Read `COLLABORATION.md` before changing this project.
 
 - `/login` is the public sign-in page.
 - `/` redirects to `/dashboard`.
-- `/dashboard`, `/creators`, `/campaigns`, and `/reports` are protected product pages.
+- `/dashboard`, `/ops`, `/creators`, `/campaigns`, and `/reports` are protected product pages.
 
 ## Login Flow
 
@@ -45,6 +45,7 @@ Every workspace-owned model must filter by `workspace.id`, including:
 - `CreatorMatchRun`
 - `Shortlist`
 - `OutreachDraft`
+- `Approval`
 
 This is how each signed-in user sees only their own workspace data.
 

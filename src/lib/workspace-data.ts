@@ -5,8 +5,12 @@ const previewCampaign = {
   workspaceId: "preview-workspace-brand",
   name: "Los Angeles Restaurant Review Influencer Campaign",
   status: "DRAFT",
+  objective: "Prepare a local restaurant creator seeding workflow for review.",
   budgetMin: 1200,
   budgetMax: 2400,
+  startsAt: null,
+  endsAt: null,
+  metadata: {},
   createdAt: new Date("2026-01-01T00:00:00.000Z"),
   updatedAt: new Date("2026-01-01T00:00:00.000Z"),
 };
@@ -21,13 +25,22 @@ export async function getDashboardData(workspaceId: string) {
         activeCampaigns: 1,
         openTasks: 0,
         pendingCreatorLeads: 0,
+        pendingApprovals: 3,
         shortlists: 0,
         matchRuns: 0,
       },
     };
   }
 
-  const [campaigns, openTasks, creatorLeadCounts, activeCampaignCount, shortlistCount, matchRunCount] = await Promise.all([
+  const [
+    campaigns,
+    openTasks,
+    creatorLeadCounts,
+    activeCampaignCount,
+    shortlistCount,
+    matchRunCount,
+    pendingApprovalCount,
+  ] = await Promise.all([
     getWorkspaceCampaigns(workspaceId, 20),
     prisma.dashboardTask.findMany({
       where: {
@@ -52,6 +65,7 @@ export async function getDashboardData(workspaceId: string) {
     }),
     prisma.shortlist.count({ where: { workspaceId } }),
     prisma.creatorMatchRun.count({ where: { workspaceId } }),
+    getPendingApprovalCount(workspaceId),
   ]);
 
   const creatorLeads = creatorLeadCounts.reduce<Record<string, number>>((counts, item) => {
@@ -66,10 +80,24 @@ export async function getDashboardData(workspaceId: string) {
       activeCampaigns: activeCampaignCount,
       openTasks: openTasks.length,
       pendingCreatorLeads: creatorLeads.PENDING_ANALYSIS ?? 0,
+      pendingApprovals: pendingApprovalCount,
       shortlists: shortlistCount,
       matchRuns: matchRunCount,
     },
   };
+}
+
+async function getPendingApprovalCount(workspaceId: string) {
+  try {
+    return await prisma.approval.count({
+      where: {
+        workspaceId,
+        status: "PENDING",
+      },
+    });
+  } catch {
+    return 0;
+  }
 }
 
 export async function getWorkspaceCampaigns(workspaceId: string, take = 100) {
@@ -81,6 +109,16 @@ export async function getWorkspaceCampaigns(workspaceId: string, take = 100) {
     where: { workspaceId },
     orderBy: { createdAt: "desc" },
     take,
+  });
+}
+
+export async function getWorkspaceCampaign(workspaceId: string, campaignId: string) {
+  if (!process.env.DATABASE_URL) {
+    return previewCampaign.id === campaignId ? previewCampaign : null;
+  }
+
+  return prisma.campaign.findFirst({
+    where: { id: campaignId, workspaceId },
   });
 }
 
