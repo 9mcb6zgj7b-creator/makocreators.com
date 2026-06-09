@@ -1,3 +1,4 @@
+import { Prisma } from "@prisma/client";
 import type { CreatorLeadInput } from "@/lib/creator-leads";
 import { prisma } from "@/lib/db";
 
@@ -29,21 +30,44 @@ export async function syncCreatorDirectoryEntry(input: DirectoryInput) {
   const categories = unique([...(existing?.categories ?? []), ...(input.categories ?? [])]);
 
   if (existing) {
-    return prisma.creatorDirectoryEntry.update({
-      where: { id: existing.id },
-      data: {
-        primaryName: existing.primaryName || primaryName,
-        normalizedName: existing.normalizedName || normalizedName,
-        primaryEmail: existing.primaryEmail || normalizedEmail,
-        normalizedEmail: existing.normalizedEmail || normalizedEmail,
-        profileUrls,
-        platforms,
-        categories,
-        contactNotes: input.contactNotes || existing.contactNotes,
-        sourceCount: { increment: 1 },
-        lastSeenAt: new Date(),
-      },
-    });
+    const canUseIncomingEmail = normalizedEmail && (!existing.normalizedEmail || existing.normalizedEmail === normalizedEmail);
+    try {
+      return await prisma.creatorDirectoryEntry.update({
+        where: { id: existing.id },
+        data: {
+          primaryName: existing.primaryName || primaryName,
+          normalizedName: existing.normalizedName || normalizedName,
+          primaryEmail: existing.primaryEmail || (canUseIncomingEmail ? normalizedEmail : null),
+          normalizedEmail: canUseIncomingEmail ? normalizedEmail : existing.normalizedEmail,
+          profileUrls,
+          platforms,
+          categories,
+          contactNotes: input.contactNotes || existing.contactNotes,
+          sourceCount: { increment: 1 },
+          lastSeenAt: new Date(),
+        },
+      });
+    } catch (error) {
+      if (isNormalizedEmailConflict(error) && normalizedEmail) {
+        const emailEntry = await findDirectoryEntryByEmail(normalizedEmail);
+        if (emailEntry) {
+          return prisma.creatorDirectoryEntry.update({
+            where: { id: emailEntry.id },
+            data: {
+              primaryName: emailEntry.primaryName || primaryName,
+              normalizedName: emailEntry.normalizedName || normalizedName,
+              profileUrls: unique([...emailEntry.profileUrls, input.profileUrl, ...(input.profileUrls ?? []), ...rawProfileUrls].filter(Boolean)),
+              platforms: unique([...emailEntry.platforms, input.platform, ...(input.platforms ?? []), ...rawPlatforms].filter(Boolean)),
+              categories: unique([...emailEntry.categories, ...(input.categories ?? [])]),
+              contactNotes: input.contactNotes || emailEntry.contactNotes,
+              sourceCount: { increment: 1 },
+              lastSeenAt: new Date(),
+            },
+          });
+        }
+      }
+      throw error;
+    }
   }
 
   return prisma.creatorDirectoryEntry.create({
@@ -72,15 +96,28 @@ export async function attachLeadToCreatorDirectory(input: DirectoryInput, leadId
 
 async function findExistingDirectoryEntry(normalizedEmail: string | null, normalizedName: string | null) {
   if (!normalizedEmail && !normalizedName) return null;
+  if (normalizedEmail) {
+    const entry = await findDirectoryEntryByEmail(normalizedEmail);
+    if (entry) return entry;
+  }
+  if (!normalizedName) return null;
   return prisma.creatorDirectoryEntry.findFirst({
-    where: {
-      OR: [
-        normalizedEmail ? { normalizedEmail } : null,
-        normalizedName ? { normalizedName } : null,
-      ].filter((item): item is NonNullable<typeof item> => Boolean(item)),
-    },
+    where: { normalizedName },
     orderBy: { updatedAt: "desc" },
   });
+}
+
+function findDirectoryEntryByEmail(normalizedEmail: string) {
+  return prisma.creatorDirectoryEntry.findUnique({
+    where: { normalizedEmail },
+  });
+}
+
+function isNormalizedEmailConflict(error: unknown) {
+  return error instanceof Prisma.PrismaClientKnownRequestError &&
+    error.code === "P2002" &&
+    Array.isArray(error.meta?.target) &&
+    error.meta.target.includes("normalizedEmail");
 }
 
 function unique<T>(values: Array<T | null | undefined>) {
