@@ -3,16 +3,18 @@ import { prisma } from "@/lib/db";
 import {
   buildAssetApprovalEmailCopy,
   buildFollowUpCopy,
-  buildInitialOutreachCopy,
   buildThreadReplyTo,
+  buildUnsubscribeUrl,
   buildVisitApprovedMessage,
   sendConversationEmail,
 } from "@/lib/conversation-email";
 import { classifyCreatorReply, type CreatorReplyClassification } from "@/lib/conversation-classifier";
+import { buildAnchoredOutreach, getCreatorOutreachContext, type OutreachCopy } from "@/lib/outreach-copy";
 
 type StartAutomationInput = {
   creatorLeadIds?: string[];
   maxThreads?: number;
+  firstMessage?: OutreachCopy; // [Claude 2026-06-10] human-previewed copy to send as the first touch
 };
 
 type ThreadMetadata = {
@@ -131,21 +133,31 @@ export async function startCreatorOutreachAutomation(workspaceId: string, userId
       data: { replyToEmail: buildThreadReplyTo(thread.id) },
     });
 
-    await sendInitialOutreach(updatedThread);
+    // [Claude 2026-06-10] Apply the human-previewed copy only when this is a single,
+    // explicitly-approved creator (so a batch start can't reuse one override for everyone).
+    await sendInitialOutreach(updatedThread, leads.length === 1 ? input.firstMessage : undefined);
     results.push({ threadId: updatedThread.id, creatorEmail: lead.contactEmail, status: "sent" });
   }
 
   return { started: results.filter(result => result.status === "sent").length, results };
 }
 
-export async function sendInitialOutreach(thread: ConversationThread) {
-  const metadata = getThreadMetadata(thread.metadata);
-  const creatorName = metadata.creatorName || thread.creatorEmail?.split("@")[0] || "there";
-  const brandName = metadata.brandName || "Mako Creator";
+export async function sendInitialOutreach(thread: ConversationThread, override?: OutreachCopy) {
   if (!thread.creatorEmail) throw new Error("Thread has no creator email.");
+  const metadata = getThreadMetadata(thread.metadata);
 
-  const copy = buildInitialOutreachCopy({ creatorName, brandName, threadId: thread.id });
-  const email = await sendConversationEmail({ thread, to: thread.creatorEmail, subject: copy.subject, text: copy.text });
+  // [Claude 2026-06-10] Feature 4: anchor the opener on a real signal about this creator
+  // (human style note → niche/city fallback). `override` is the human-previewed copy.
+  const context = await getCreatorOutreachContext(thread.workspaceId, thread.creatorLeadId);
+  const copy: OutreachCopy = context
+    ? await buildAnchoredOutreach(context, override)
+    : override ?? {
+        subject: `${metadata.brandName || "Mako Creator"} creator collaboration invite`,
+        body: `Hi ${metadata.creatorName || thread.creatorEmail.split("@")[0]},\n\nI'm reaching out from ${metadata.brandName || "Mako Creator"} about a possible creator collaboration. If you're open to it, just reply and let me know.`,
+      };
+
+  const text = `${copy.body}\n\nUnsubscribe: ${buildUnsubscribeUrl(thread.id)}`;
+  const email = await sendConversationEmail({ thread, to: thread.creatorEmail, subject: copy.subject, text });
   await prisma.$transaction([
     prisma.conversationMessage.create({
       data: {
@@ -156,8 +168,8 @@ export async function sendInitialOutreach(thread: ConversationThread) {
         fromEmail: process.env.RESEND_FROM_EMAIL,
         toEmail: thread.creatorEmail,
         subject: copy.subject,
-        textBody: copy.text,
-        metadata: { automation: "initial-outreach" },
+        textBody: text,
+        metadata: { automation: "initial-outreach", anchored: Boolean(override || context?.styleNote) },
       },
     }),
     prisma.conversationThread.update({
