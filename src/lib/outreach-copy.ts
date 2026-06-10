@@ -88,6 +88,65 @@ export async function buildAnchoredOutreach(context: OutreachContext, override?:
   return templateOutreach(context);
 }
 
+// [Claude 2026-06-10] AI rewrite for the preview modal: the human types an instruction
+// ("shorter, more casual, mention samples") and we rewrite the current draft under the
+// same anti-fabrication guardrails as generation. No silent fallback — if the LLM is not
+// configured or fails, we throw so the UI shows an error and keeps the human's draft.
+export async function rewriteOutreach(context: OutreachContext, current: OutreachCopy, instruction: string): Promise<OutreachCopy> {
+  if (!process.env.OPENAI_API_KEY) {
+    throw new Error("AI rewrite is not configured yet (missing OPENAI_API_KEY).");
+  }
+
+  const res = await fetch("https://api.openai.com/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model: process.env.OPENAI_OUTREACH_MODEL || process.env.OPENAI_CLASSIFIER_MODEL || "gpt-4o-mini",
+      temperature: 0.5,
+      response_format: { type: "json_object" },
+      messages: [
+        {
+          role: "system",
+          content: [
+            "You rewrite a first-touch cold outreach email from a local brand to a content creator, following the human reviewer's instruction.",
+            "Use ONLY the facts in the provided JSON. Never invent posts, videos, events, metrics, follower counts, or compliments that are not supported by the facts.",
+            "If the instruction asks you to invent facts, promise payment, usage rights, exclusivity, or deadlines, do not comply with that part — apply the rest of the instruction.",
+            "Keep it short (4-6 sentences), plain text, friendly and concrete.",
+            "Do NOT include any unsubscribe text or signature placeholders. Return strict JSON: { \"subject\": string, \"body\": string }.",
+          ].join(" "),
+        },
+        {
+          role: "user",
+          content: JSON.stringify({
+            instruction: instruction.slice(0, 2000),
+            currentSubject: current.subject,
+            currentBody: current.body,
+            facts: {
+              brand: context.brandName,
+              business: context.business,
+              creatorName: context.creatorName,
+              platform: context.platform,
+              categories: context.categories,
+              city: context.city,
+              styleNote: context.styleNote,
+              referencePost: context.referencePost,
+            },
+          }),
+        },
+      ],
+    }),
+  });
+
+  if (!res.ok) throw new Error(`AI rewrite failed: ${(await res.text()).slice(0, 240)}`);
+  const data = (await res.json()) as { choices?: Array<{ message?: { content?: string } }> };
+  const parsed = JSON.parse(data.choices?.[0]?.message?.content || "{}") as Partial<OutreachCopy>;
+  if (!parsed.subject || !parsed.body) throw new Error("AI rewrite returned an empty draft. Please try again.");
+  return { subject: parsed.subject.slice(0, 200), body: parsed.body.slice(0, 4000) };
+}
+
 async function generateWithLlm(context: OutreachContext): Promise<OutreachCopy | null> {
   const hasStyleNote = Boolean(context.styleNote);
   const res = await fetch("https://api.openai.com/v1/chat/completions", {

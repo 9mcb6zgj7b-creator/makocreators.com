@@ -10,19 +10,20 @@ import { getRequestContext } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { startCreatorOutreachAutomation } from "@/lib/conversation-automation";
 import { getOutreachPicks, SNOOZE_METADATA_KEY } from "@/lib/outreach-picks";
-import { SIGNAL_METADATA_KEY, buildAnchoredOutreach, getCreatorOutreachContext } from "@/lib/outreach-copy";
+import { SIGNAL_METADATA_KEY, buildAnchoredOutreach, getCreatorOutreachContext, rewriteOutreach } from "@/lib/outreach-copy";
 
 export const dynamic = "force-dynamic";
 
 const SKIP_SNOOZE_DAYS = 30;
 
 const actionSchema = z.object({
-  action: z.enum(["preview", "approve", "skip"]),
+  action: z.enum(["preview", "approve", "skip", "rewrite"]),
   leadId: z.string().min(1),
   subject: z.string().max(200).optional(),
   body: z.string().max(6000).optional(),
   styleNote: z.string().max(2000).optional(),
   referencePost: z.string().max(500).optional(),
+  instruction: z.string().max(2000).optional(),
 });
 
 export async function GET() {
@@ -48,6 +49,20 @@ export async function POST(req: NextRequest) {
       if (body.referencePost !== undefined) context.referencePost = body.referencePost.trim() || null;
       const copy = await buildAnchoredOutreach(context);
       return ok({ action: "preview", ...copy, styleNote: context.styleNote, referencePost: context.referencePost });
+    }
+
+    // [Claude 2026-06-10] AI rewrite: take the human's instruction + current draft and
+    // return a rewritten subject/body. Nothing is sent or saved here — preview only.
+    if (body.action === "rewrite") {
+      const context = await getCreatorOutreachContext(workspace.id, body.leadId);
+      if (!context) return notFound("Creator not found in this workspace.");
+      if (body.styleNote !== undefined) context.styleNote = body.styleNote.trim() || null;
+      if (body.referencePost !== undefined) context.referencePost = body.referencePost.trim() || null;
+      const instruction = body.instruction?.trim();
+      if (!instruction) throw new Error("Describe how the email should change before rewriting.");
+      if (!body.subject?.trim() || !body.body?.trim()) throw new Error("There is no draft to rewrite yet.");
+      const copy = await rewriteOutreach(context, { subject: body.subject, body: body.body }, instruction);
+      return ok({ action: "rewrite", ...copy });
     }
 
     if (body.action === "approve") {

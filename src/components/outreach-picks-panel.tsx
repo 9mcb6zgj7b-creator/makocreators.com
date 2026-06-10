@@ -16,8 +16,10 @@ type PreviewState = {
   referencePost: string;
   subject: string;
   body: string;
+  rewriteNote: string;
   loading: boolean;
   sending: boolean;
+  rewriting: boolean;
   error: string;
 };
 
@@ -59,7 +61,7 @@ export function OutreachPicksPanel() {
   }
 
   async function openPreview(pick: OutreachPick) {
-    setPreview({ leadId: pick.leadId, name: pick.name, styleNote: "", referencePost: "", subject: "", body: "", loading: true, sending: false, error: "" });
+    setPreview({ leadId: pick.leadId, name: pick.name, styleNote: "", referencePost: "", subject: "", body: "", rewriteNote: "", loading: true, sending: false, rewriting: false, error: "" });
     try {
       const r = await generatePreview(pick.leadId, "", "");
       setPreview(prev => (prev ? { ...prev, subject: r.subject ?? "", body: r.body ?? "", styleNote: r.styleNote ?? "", referencePost: r.referencePost ?? "", loading: false } : prev));
@@ -76,6 +78,33 @@ export function OutreachPicksPanel() {
       setPreview(prev => (prev ? { ...prev, subject: r.subject ?? prev.subject, body: r.body ?? prev.body, loading: false } : prev));
     } catch (caught) {
       setPreview(prev => (prev ? { ...prev, loading: false, error: caught instanceof Error ? caught.message : "Preview failed." } : prev));
+    }
+  }
+
+  // [Claude 2026-06-10] AI rewrite: send the human's instruction + current draft to the
+  // rewrite action and replace subject/body with the result (still editable before send).
+  async function rewrite() {
+    if (!preview || !preview.rewriteNote.trim()) return;
+    setPreview({ ...preview, rewriting: true, error: "" });
+    try {
+      const res = await fetch("/api/outreach-picks", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "rewrite",
+          leadId: preview.leadId,
+          subject: preview.subject,
+          body: preview.body,
+          styleNote: preview.styleNote,
+          referencePost: preview.referencePost,
+          instruction: preview.rewriteNote,
+        }),
+      });
+      const payload = (await res.json()) as { subject?: string; body?: string; error?: unknown };
+      if (!res.ok) throw new Error(typeof payload.error === "string" ? payload.error : "Rewrite failed.");
+      setPreview(prev => (prev ? { ...prev, subject: payload.subject ?? prev.subject, body: payload.body ?? prev.body, rewriting: false } : prev));
+    } catch (caught) {
+      setPreview(prev => (prev ? { ...prev, rewriting: false, error: caught instanceof Error ? caught.message : "Rewrite failed." } : prev));
     }
   }
 
@@ -147,7 +176,7 @@ export function OutreachPicksPanel() {
         )
       ) : null}
 
-      {preview ? <PreviewModal preview={preview} setPreview={setPreview} onRegenerate={regenerate} onSend={send} /> : null}
+      {preview ? <PreviewModal preview={preview} setPreview={setPreview} onRegenerate={regenerate} onRewrite={rewrite} onSend={send} /> : null}
     </section>
   );
 }
@@ -197,8 +226,8 @@ function OutreachPickCard({ pick, state, onApprove, onSkip }: { pick: OutreachPi
   );
 }
 
-function PreviewModal({ preview, setPreview, onRegenerate, onSend }: { preview: PreviewState; setPreview: (value: PreviewState | null) => void; onRegenerate: () => void; onSend: () => void }) {
-  const busy = preview.loading || preview.sending;
+function PreviewModal({ preview, setPreview, onRegenerate, onRewrite, onSend }: { preview: PreviewState; setPreview: (value: PreviewState | null) => void; onRegenerate: () => void; onRewrite: () => void; onSend: () => void }) {
+  const busy = preview.loading || preview.sending || preview.rewriting;
   return (
     <div className="ops-modal-backdrop" role="presentation" onClick={() => (busy ? null : setPreview(null))}>
       <section className="ops-modal outreach-preview-modal" role="dialog" aria-modal="true" aria-label="Outreach preview" onClick={event => event.stopPropagation()}>
@@ -233,6 +262,23 @@ function PreviewModal({ preview, setPreview, onRegenerate, onSend }: { preview: 
           <span>Body (an unsubscribe line is added automatically)</span>
           <textarea rows={7} value={preview.body} disabled={busy} onChange={event => setPreview({ ...preview, body: event.target.value })} />
         </label>
+
+        <div className="outreach-rewrite-box">
+          <p className="outreach-rewrite-title">Rewrite with AI</p>
+          <textarea
+            rows={2}
+            value={preview.rewriteNote}
+            disabled={busy}
+            placeholder="e.g. make it shorter and more casual, mention we ship product samples"
+            onChange={event => setPreview({ ...preview, rewriteNote: event.target.value })}
+          />
+          <div className="outreach-rewrite-actions">
+            <button type="button" className="outreach-rewrite-send" disabled={busy || !preview.rewriteNote.trim() || !preview.subject || !preview.body} onClick={onRewrite}>
+              {preview.rewriting ? "Rewriting…" : "Rewrite email"}
+            </button>
+            <span className="outreach-rewrite-hint">Rewrites subject + body. You can still edit before sending.</span>
+          </div>
+        </div>
 
         {preview.error ? <p className="creator-drawer-error">{preview.error}</p> : null}
 
