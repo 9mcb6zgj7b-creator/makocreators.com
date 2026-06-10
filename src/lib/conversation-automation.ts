@@ -268,6 +268,48 @@ export async function recordInboundCreatorReply(input: {
   const thread = await findInboundThread(input);
   if (!thread) throw new Error("Conversation thread not found for inbound email.");
 
+  // [Claude 2026-06-10] Security fix (H1): thread routing (X-Mako-Thread-ID header and
+  // the to-address) is fully controlled by the external sender, so it must not be trusted
+  // alone. Verify the sender is the creator on this thread before running any automation.
+  // On mismatch we quarantine: record the message for audit + surface a human task, but
+  // never touch the thread state machine (no unsubscribe/reject/approval side effects).
+  const fromEmail = input.fromEmail?.trim().toLowerCase() || null;
+  const expectedEmail = thread.creatorEmail?.trim().toLowerCase() || null;
+  const senderVerified = Boolean(fromEmail && expectedEmail && fromEmail === expectedEmail);
+
+  if (!senderVerified) {
+    const ownerId = await getWorkspaceOwnerId(thread.workspaceId);
+    await prisma.$transaction([
+      prisma.conversationMessage.create({
+        data: {
+          threadId: thread.id,
+          direction: "INBOUND",
+          provider: "resend",
+          providerMessageId: input.providerMessageId,
+          fromEmail: input.fromEmail,
+          toEmail: input.toEmail,
+          subject: input.subject,
+          textBody: input.textBody,
+          htmlBody: input.htmlBody,
+          intent: "unclear",
+          metadata: { ...asRecord(input.metadata), senderMismatch: true, quarantined: true } as Prisma.InputJsonValue,
+        },
+      }),
+      prisma.dashboardTask.create({
+        data: {
+          workspaceId: thread.workspaceId,
+          createdById: ownerId,
+          title: "Review quarantined inbound email",
+          description: `An inbound email for this thread came from "${input.fromEmail || "unknown sender"}", which does not match the creator on file (${thread.creatorEmail || "none"}). No automated action was taken.`,
+          type: "OUTREACH",
+          priority: 8,
+          metadata: { automation: "creator-outreach", threadId: thread.id, senderMismatch: true } as Prisma.InputJsonValue,
+        },
+      }),
+    ]);
+    return { threadId: thread.id, quarantined: true as const };
+  }
+
   const text = input.textBody || stripHtml(input.htmlBody || "");
   const classification = await classifyCreatorReply({ subject: input.subject, text });
 

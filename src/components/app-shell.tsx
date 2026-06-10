@@ -6,7 +6,6 @@ type NavKey = "home" | "ops" | "creators" | "campaigns" | "reports";
 const navigation: Array<{ key: NavKey; label: string; href: string; icon: string }> = [
   { key: "home", label: "Home", href: "/dashboard", icon: "home" },
   { key: "ops", label: "Ops", href: "/ops", icon: "shield" },
-  { key: "creators", label: "Creators", href: "/creators", icon: "users" },
   { key: "campaigns", label: "Campaigns", href: "/campaigns", icon: "plan" },
   { key: "reports", label: "Reports", href: "/reports", icon: "report" },
 ];
