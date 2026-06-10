@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { ApprovalActions } from "@/components/approval-actions";
+import { ApprovalActions, ReopenApprovalButton } from "@/components/approval-actions";
 import type { OpsApproval, OpsCreatorListRow, OpsMetric } from "@/lib/ops-overview";
 
 type ActiveList = "all" | "contactable" | "approvals" | null;
@@ -11,17 +11,19 @@ export function OpsMetricCards({
   creators,
   contactableCreators,
   approvals,
+  reviewedApprovals = [], // [Claude 2026-06-10]
 }: {
   metrics: OpsMetric[];
   creators: OpsCreatorListRow[];
   contactableCreators: OpsCreatorListRow[];
   approvals: OpsApproval[];
+  reviewedApprovals?: OpsApproval[];
 }) {
   const [activeList, setActiveList] = useState<ActiveList>(null);
   const activeRows = activeList === "contactable" ? contactableCreators : creators;
-  const activeTitle = activeList === "approvals" ? "Pending Approvals" : activeList === "contactable" ? "Contactable Creators" : "Creators Tracked";
+  const activeTitle = activeList === "approvals" ? "Approvals" : activeList === "contactable" ? "Contactable Creators" : "Creators Tracked";
   const activeDescription = activeList === "approvals"
-    ? "Human approval gates for assets, visits, and other sensitive creator actions."
+    ? "Pending human approval gates, plus recently reviewed decisions you can reopen."
     : activeList === "contactable"
       ? "Creators in this workspace with an email available for outreach preparation."
       : "Unique creators saved or imported in this workspace.";
@@ -91,7 +93,7 @@ export function OpsMetricCards({
             </div>
 
             {activeList === "approvals" ? (
-              <ApprovalList approvals={approvals} />
+              <ApprovalList approvals={approvals} reviewedApprovals={reviewedApprovals} />
             ) : (
               <CreatorTable activeRows={activeRows} activeList={activeList} activeTitle={activeTitle} />
             )}
@@ -138,31 +140,62 @@ function CreatorTable({ activeRows, activeList, activeTitle }: { activeRows: Ops
   );
 }
 
-function ApprovalList({ approvals }: { approvals: OpsApproval[] }) {
-  if (!approvals.length) {
-    return (
-      <div className="creator-list-empty">
-        <strong>No pending approvals</strong>
-        <p>Asset sends, visit scheduling, and low-confidence replies will appear here when a human decision is needed.</p>
-      </div>
-    );
-  }
-
+// [Claude 2026-06-10] Show pending approvals (with action buttons) AND recently reviewed
+// approvals (with a Reopen button) so actioned items no longer disappear from the UI.
+function ApprovalList({ approvals, reviewedApprovals }: { approvals: OpsApproval[]; reviewedApprovals: OpsApproval[] }) {
   return (
     <div className="ops-modal-approval-list">
-      {approvals.map(approval => (
-        <article key={approval.id || approval.title} className="ops-approval-card">
-          <div className="ops-card-title-row">
-            <strong>{approval.title}</strong>
-            <span className={`ops-risk ${approval.risk.toLowerCase()}`}>{approval.risk}</span>
-          </div>
-          <small>{approval.type}</small>
-          <p>{approval.summary}</p>
-          <ApprovalActions approvalId={approval.id} isPreview={approval.isPreview} title={approval.title} />
-        </article>
-      ))}
+      {approvals.length ? (
+        approvals.map(approval => (
+          <article key={approval.id || approval.title} className="ops-approval-card">
+            <div className="ops-card-title-row">
+              <strong>{approval.title}</strong>
+              <span className={`ops-risk ${approval.risk.toLowerCase()}`}>{approval.risk}</span>
+            </div>
+            <small>{approval.type}</small>
+            <p>{approval.summary}</p>
+            <ApprovalActions approvalId={approval.id} isPreview={approval.isPreview} title={approval.title} />
+          </article>
+        ))
+      ) : (
+        <div className="creator-list-empty">
+          <strong>No pending approvals</strong>
+          <p>Asset sends, visit scheduling, and low-confidence replies will appear here when a human decision is needed.</p>
+        </div>
+      )}
+
+      {reviewedApprovals.length ? (
+        <section className="ops-reviewed-approvals" aria-label="Recently reviewed approvals">
+          <h3 className="section-eyebrow">Recently reviewed</h3>
+          {reviewedApprovals.map(approval => (
+            <article key={approval.id || approval.title} className="ops-approval-card reviewed">
+              <div className="ops-card-title-row">
+                <strong>{approval.title}</strong>
+                <span className={`ops-approval-status ${(approval.status || "").toLowerCase()}`}>{formatStatusLabel(approval.status)}</span>
+              </div>
+              <small>{approval.type}</small>
+              <p>{approval.summary}</p>
+              {approval.decisionNotes ? <p className="ops-decision-notes">Note: {approval.decisionNotes}</p> : null}
+              <ReopenApprovalButton approvalId={approval.id} isPreview={approval.isPreview} />
+            </article>
+          ))}
+        </section>
+      ) : null}
     </div>
   );
+}
+
+function formatStatusLabel(status?: string) {
+  switch (status) {
+    case "APPROVED":
+      return "Approved";
+    case "REJECTED":
+      return "Rejected";
+    case "NEEDS_CHANGES":
+      return "Needs changes";
+    default:
+      return status || "Reviewed";
+  }
 }
 
 function Metric({ label, value, note }: { label: string; value: number; note: string }) {

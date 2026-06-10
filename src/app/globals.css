@@ -2748,6 +2748,54 @@ h2 {
   color: #be123c;
 }
 
+/* [Claude 2026-06-10] Reviewed-approvals section + status badges */
+.ops-reviewed-approvals {
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px solid #ece7df;
+  display: grid;
+  gap: 12px;
+}
+
+.ops-reviewed-approvals .section-eyebrow {
+  margin: 0;
+}
+
+.ops-approval-card.reviewed {
+  opacity: 0.92;
+}
+
+.ops-approval-status {
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  background: #f1f5f9;
+  color: #475569;
+  white-space: nowrap;
+}
+
+.ops-approval-status.approved {
+  background: #ecfdf5;
+  color: #047857;
+}
+
+.ops-approval-status.rejected {
+  background: #fff1f2;
+  color: #be123c;
+}
+
+.ops-approval-status.needs_changes {
+  background: #fff7ed;
+  color: #9a3412;
+}
+
+.ops-decision-notes {
+  font-size: 13px;
+  color: #687080;
+  font-style: italic;
+}
+
 .ops-agent-step {
   display: grid;
   grid-template-columns: 18px minmax(0, 1fr);

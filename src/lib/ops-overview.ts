@@ -27,6 +27,7 @@ export type OpsApproval = {
   summary: string;
   risk: OpsRiskLevel;
   status?: string;
+  decisionNotes?: string | null; // [Claude 2026-06-10] shown in the reviewed-approvals list
 };
 
 export type OpsDraft = {
@@ -75,6 +76,7 @@ export type OpsOverview = {
   creators: OpsCreator[];
   drafts: OpsDraft[];
   approvals: OpsApproval[];
+  reviewedApprovals: OpsApproval[]; // [Claude 2026-06-10] approvals already actioned (approved / needs changes / rejected)
   pipeline: OpsPipelineStage[];
   agentSteps: OpsAgentStep[];
   blockedActions: string[];
@@ -221,7 +223,7 @@ export async function getOpsOverview(workspaceId: string): Promise<OpsOverview> 
     return buildPreviewOverview("preview");
   }
 
-  const [creatorLeadStats, matchRunCount, draftCount, openTaskCount, approvalResult, creatorRecommendations, workspaceDrafts] = await Promise.all([
+  const [creatorLeadStats, matchRunCount, draftCount, openTaskCount, approvalResult, reviewedApprovals, creatorRecommendations, workspaceDrafts] = await Promise.all([
     getCreatorLeadStats(workspaceId),
     prisma.creatorMatchRun.count({ where: { workspaceId } }),
     prisma.outreachDraft.count({ where: { workspaceId, status: "DRAFT" } }),
@@ -232,6 +234,7 @@ export async function getOpsOverview(workspaceId: string): Promise<OpsOverview> 
       },
     }),
     getPendingApprovals(workspaceId),
+    getReviewedApprovals(workspaceId), // [Claude 2026-06-10] actioned approvals so they don't vanish from the UI
     getCreatorRecommendations(workspaceId),
     getWorkspaceDrafts(workspaceId),
   ]);
@@ -255,6 +258,7 @@ export async function getOpsOverview(workspaceId: string): Promise<OpsOverview> 
     creators,
     drafts,
     approvals: approvalItems,
+    reviewedApprovals, // [Claude 2026-06-10]
     metrics: [
       {
         label: "Creators tracked",
@@ -720,6 +724,34 @@ async function getPendingApprovals(workspaceId: string): Promise<{ items: OpsApp
   }
 }
 
+// [Claude 2026-06-10] Fetch approvals that have already been actioned so they remain
+// visible (and reopenable) after Approve / Need Change / Reject. Previously only PENDING
+// approvals were surfaced, so an actioned item disappeared from the UI entirely.
+async function getReviewedApprovals(workspaceId: string): Promise<OpsApproval[]> {
+  try {
+    const approvals = await prisma.approval.findMany({
+      where: {
+        workspaceId,
+        status: { in: ["APPROVED", "NEEDS_CHANGES", "REJECTED"] },
+      },
+      orderBy: [{ reviewedAt: "desc" }, { updatedAt: "desc" }],
+      take: 15,
+    });
+
+    return approvals.map(approval => ({
+      id: approval.id,
+      type: formatApprovalType(approval.type),
+      title: approval.title,
+      summary: approval.summary,
+      risk: formatRiskLevel(approval.riskLevel),
+      status: approval.status,
+      decisionNotes: approval.decisionNotes,
+    }));
+  } catch {
+    return [];
+  }
+}
+
 function scoreCreatorLead(lead: {
   categories: string[];
   followers: number | null;
@@ -846,6 +878,7 @@ function buildPreviewOverview(source: OpsOverview["source"]): OpsOverview {
     creators: previewCreators,
     drafts: previewDrafts,
     approvals: previewApprovals,
+    reviewedApprovals: [], // [Claude 2026-06-10] no reviewed history in preview mode
     pipeline: previewPipeline,
     agentSteps: previewAgentSteps,
     blockedActions,

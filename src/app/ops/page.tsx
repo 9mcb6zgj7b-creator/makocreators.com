@@ -61,6 +61,7 @@ export default async function OpsPage() {
           creators={creatorRows}
           contactableCreators={contactableCreatorRows}
           approvals={overview.approvals}
+          reviewedApprovals={overview.reviewedApprovals}
         />
       </section>
     </AppShell>

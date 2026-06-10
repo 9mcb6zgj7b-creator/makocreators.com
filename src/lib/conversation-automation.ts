@@ -398,6 +398,32 @@ export async function handleApprovedConversationApproval(approval: Approval) {
   return markVisitApproved(thread, metadata.selectedTime ? String(metadata.selectedTime) : null);
 }
 
+// [Claude 2026-06-10] Give "Need Change" and "Reject" real effects. Previously these
+// statuses did nothing, leaving the conversation thread stuck in a WAITING_* state with
+// no pending approval and no human notified. Now we route the thread back to a human with
+// a dashboard task explaining the decision.
+export async function handleReviewedConversationApproval(approval: Approval) {
+  if (approval.status !== "NEEDS_CHANGES" && approval.status !== "REJECTED") return null;
+  if (approval.type !== "SEND_ASSETS" && approval.type !== "SCHEDULE_VISIT") return null;
+
+  const metadata = asRecord(approval.metadata);
+  const threadId = typeof metadata.threadId === "string" ? metadata.threadId : null;
+  if (!threadId) return null;
+
+  const thread = await prisma.conversationThread.findFirst({ where: { id: threadId, workspaceId: approval.workspaceId } });
+  if (!thread) return null;
+
+  // Only act on threads still waiting on this approval; don't disturb ones already moved on.
+  if (thread.state !== "WAITING_ASSET_APPROVAL" && thread.state !== "WAITING_VISIT_APPROVAL") return null;
+
+  const reason = approval.status === "REJECTED"
+    ? `Approval rejected by a human: "${approval.title}". Decide the next step with this creator${approval.decisionNotes ? ` — notes: ${approval.decisionNotes}` : "."}`
+    : `Approval needs changes: "${approval.title}". Revise before resubmitting${approval.decisionNotes ? ` — notes: ${approval.decisionNotes}` : "."}`;
+
+  await moveThreadToHuman(thread, reason);
+  return { threadId: thread.id, action: approval.status === "REJECTED" ? "rejected_to_human" : "needs_changes_to_human" };
+}
+
 async function sendApprovedAssets(thread: ConversationThread) {
   const metadata = getThreadMetadata(thread.metadata);
   const creatorName = metadata.creatorName || thread.creatorEmail?.split("@")[0] || "there";

@@ -68,6 +68,47 @@ export function ApprovalActions({ approvalId, isPreview, title }: { approvalId?:
   );
 }
 
+// [Claude 2026-06-10] Reopen an already-actioned approval by setting it back to PENDING,
+// so a reviewed / needs-changes / rejected item can be pulled back into the queue.
+export function ReopenApprovalButton({ approvalId, isPreview }: { approvalId?: string; isPreview?: boolean }) {
+  const router = useRouter();
+  const [isPending, startTransition] = useTransition();
+  const [error, setError] = useState("");
+
+  if (isPreview || !approvalId) {
+    return <span className="ops-preview-note">Preview item</span>;
+  }
+
+  function reopen() {
+    setError("");
+    startTransition(async () => {
+      try {
+        const res = await fetch(`/api/approvals/${approvalId}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ status: "PENDING" }),
+        });
+        if (!res.ok) {
+          const data = (await res.json().catch(() => ({}))) as ApiErrorResponse;
+          throw new Error(formatApiError(data.error) || "Could not reopen approval.");
+        }
+        router.refresh();
+      } catch (caught) {
+        setError(caught instanceof Error ? caught.message : "Could not reopen approval.");
+      }
+    });
+  }
+
+  return (
+    <div className="ops-approval-actions">
+      <button type="button" disabled={isPending} onClick={reopen}>
+        {isPending ? "Reopening..." : "Reopen"}
+      </button>
+      {error ? <span role="status">{error}</span> : null}
+    </div>
+  );
+}
+
 function formatApiError(error: ApiErrorResponse["error"]) {
   if (Array.isArray(error)) {
     return error.map(issue => issue.message).filter(Boolean).join(" ");

@@ -3,7 +3,7 @@ import { ApprovalStatus } from "@prisma/client";
 import { z } from "zod";
 import { apiError, notFound, ok } from "@/lib/api";
 import { getRequestContext } from "@/lib/auth";
-import { handleApprovedConversationApproval } from "@/lib/conversation-automation";
+import { handleApprovedConversationApproval, handleReviewedConversationApproval } from "@/lib/conversation-automation";
 import { prisma } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
@@ -44,7 +44,13 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
 
     // [Claude 2026-06-09] Only fire automation on the first approval, not on repeats.
     const justApproved = body.status === "APPROVED" && existing.status !== "APPROVED";
-    const automationResult = justApproved ? await handleApprovedConversationApproval(approval) : null;
+    // [Claude 2026-06-10] Route Need Change / Reject back to a human (only on transition in).
+    const justRevised = (body.status === "NEEDS_CHANGES" || body.status === "REJECTED") && existing.status !== body.status;
+    const automationResult = justApproved
+      ? await handleApprovedConversationApproval(approval)
+      : justRevised
+        ? await handleReviewedConversationApproval(approval)
+        : null;
 
     return ok({ approval, automationResult });
   } catch (error) {
