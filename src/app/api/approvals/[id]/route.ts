@@ -18,9 +18,13 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     const { user, workspace } = await getRequestContext();
     const body = updateApprovalSchema.parse(await req.json());
 
+    // [Claude 2026-06-09] Security fix: read the current status so we only run the
+    // side-effecting automation when the approval first transitions INTO APPROVED.
+    // Previously re-PATCHing an already-APPROVED approval re-sent assets / re-confirmed
+    // the visit to the creator.
     const existing = await prisma.approval.findFirst({
       where: { id: params.id, workspaceId: workspace.id },
-      select: { id: true },
+      select: { id: true, status: true },
     });
 
     if (!existing) {
@@ -38,7 +42,9 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
       },
     });
 
-    const automationResult = body.status === "APPROVED" ? await handleApprovedConversationApproval(approval) : null;
+    // [Claude 2026-06-09] Only fire automation on the first approval, not on repeats.
+    const justApproved = body.status === "APPROVED" && existing.status !== "APPROVED";
+    const automationResult = justApproved ? await handleApprovedConversationApproval(approval) : null;
 
     return ok({ approval, automationResult });
   } catch (error) {

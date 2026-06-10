@@ -54,6 +54,26 @@ export async function startCreatorOutreachAutomation(workspaceId: string, userId
   const results = [];
   for (const lead of leads) {
     if (!lead.contactEmail) continue;
+
+    // [Claude 2026-06-09] Compliance fix: never re-contact a creator who previously
+    // unsubscribed (thread CLOSED) or declined (thread REJECTED). Opt-out is keyed on
+    // the email address, so we check every thread for this email in the workspace, not
+    // just the current lead's active thread. (A workspace-wide / global suppression
+    // table would be a stronger follow-up, but this closes the immediate CAN-SPAM gap.)
+    const suppressed = await prisma.conversationThread.findFirst({
+      where: {
+        workspaceId,
+        creatorEmail: lead.contactEmail,
+        state: { in: ["CLOSED", "REJECTED"] },
+      },
+      select: { id: true },
+    });
+
+    if (suppressed) {
+      results.push({ threadId: suppressed.id, creatorEmail: lead.contactEmail, status: "suppressed" });
+      continue;
+    }
+
     const existing = await prisma.conversationThread.findFirst({
       where: {
         workspaceId,
@@ -367,10 +387,14 @@ export async function handleApprovedConversationApproval(approval: Approval) {
   const thread = await prisma.conversationThread.findFirst({ where: { id: threadId, workspaceId: approval.workspaceId } });
   if (!thread || !thread.creatorEmail) return null;
 
+  // [Claude 2026-06-09] Idempotency guard (defense in depth): if the thread has already
+  // reached the terminal state for this action, do not send the creator a second email.
   if (approval.type === "SEND_ASSETS") {
+    if (thread.state === "ASSETS_SENT") return { threadId: thread.id, action: "already_sent" };
     return sendApprovedAssets(thread);
   }
 
+  if (thread.state === "VISIT_SCHEDULED") return { threadId: thread.id, action: "already_scheduled" };
   return markVisitApproved(thread, metadata.selectedTime ? String(metadata.selectedTime) : null);
 }
 

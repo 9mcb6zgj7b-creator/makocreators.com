@@ -15,8 +15,17 @@ export async function GET(req: NextRequest) {
 }
 
 function assertCronAuthorized(req: NextRequest) {
+  // [Claude 2026-06-09] Security fix: fail closed when CRON_SECRET is missing.
+  // Previously an unset secret returned early and left this endpoint fully open,
+  // letting anyone trigger outreach follow-up emails. In production we now require
+  // the secret; unauthenticated access is only allowed in local development.
   const secret = process.env.CRON_SECRET;
-  if (!secret) return;
+  if (!secret) {
+    if (process.env.NODE_ENV === "production") {
+      throw new Error("CRON_SECRET is not configured.");
+    }
+    return;
+  }
   const auth = req.headers.get("authorization");
   const querySecret = req.nextUrl.searchParams.get("secret");
   if (auth !== `Bearer ${secret}` && querySecret !== secret) {
