@@ -211,6 +211,7 @@ function PreviewModal({ preview, setPreview, onRegenerate, onSend }: { preview: 
           <button type="button" onClick={() => setPreview(null)} disabled={busy} aria-label="Close preview">Close</button>
         </div>
 
+        <div className="outreach-preview-body">
         <label className="outreach-preview-field">
           <span>Style note (what you liked)</span>
           <textarea rows={2} value={preview.styleNote} disabled={busy} placeholder="e.g. their fast-paced taco reviews around East LA" onChange={event => setPreview({ ...preview, styleNote: event.target.value })} />
@@ -230,7 +231,7 @@ function PreviewModal({ preview, setPreview, onRegenerate, onSend }: { preview: 
         </label>
         <label className="outreach-preview-field">
           <span>Body (an unsubscribe line is added automatically)</span>
-          <textarea rows={9} value={preview.body} disabled={busy} onChange={event => setPreview({ ...preview, body: event.target.value })} />
+          <textarea rows={7} value={preview.body} disabled={busy} onChange={event => setPreview({ ...preview, body: event.target.value })} />
         </label>
 
         {preview.error ? <p className="creator-drawer-error">{preview.error}</p> : null}
@@ -240,6 +241,7 @@ function PreviewModal({ preview, setPreview, onRegenerate, onSend }: { preview: 
           <button type="button" className="primary" disabled={busy || !preview.subject || !preview.body} onClick={onSend}>
             {preview.sending ? "Sending…" : "Send first email"}
           </button>
+        </div>
         </div>
       </section>
     </div>

@@ -3075,6 +3075,24 @@ h2 {
 /* [Claude 2026-06-10] Feature 4 — outreach preview modal */
 .outreach-preview-modal {
   max-width: 560px;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Scrollable body so the Send button is always reachable (the modal itself is overflow:hidden). */
+.outreach-preview-body {
+  padding: 18px 22px 20px;
+  overflow-y: auto;
+  flex: 1;
+  min-height: 0;
+}
+
+.outreach-preview-actions {
+  position: sticky;
+  bottom: 0;
+  background: #fff;
+  padding-top: 12px;
+  margin-top: 4px;
 }
 
 .outreach-preview-field {
