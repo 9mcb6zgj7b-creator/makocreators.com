@@ -1,5 +1,6 @@
 import { AppShell, Icon } from "@/components/app-shell";
 import { OpsMetricCards } from "@/components/ops-metric-cards";
+import { OutreachPicksPanel } from "@/components/outreach-picks-panel";
 import { getOpsOverview, getWorkspaceCreatorListRows } from "@/lib/ops-overview";
 import { requirePageContext } from "@/lib/page-auth";
 
@@ -43,6 +44,9 @@ export default async function OpsPage() {
             <span>Mako can recommend, draft, score, and queue. It cannot send, ship, promise payment, approve rights, publish, or launch ads.</span>
           </div>
         </section>
+
+        {/* [Claude 2026-06-10] Feature 3 — daily "who to contact today" picks. */}
+        <OutreachPicksPanel />
 
         <section className="ops-workflow-strip" aria-label="Core MVP workflow">
           {coreWorkflowSteps.map((step, index) => (

@@ -57,6 +57,7 @@ export type OpsMetric = {
 };
 
 export type OpsCreatorListRow = {
+  leadId?: string; // [Claude 2026-06-10] representative lead id, used to open the memory drawer
   name: string;
   platform: string;
   followerNumber: string;
@@ -310,6 +311,8 @@ export async function getWorkspaceCreatorListRows(workspaceId: string, options: 
     where: { workspaceId },
     orderBy: [{ updatedAt: "desc" }, { createdAt: "desc" }],
     select: {
+      id: true, // [Claude 2026-06-10] needed so each row can open its memory dossier
+      directoryEntryId: true,
       rawInput: true,
       contactEmail: true,
       displayName: true,
@@ -324,7 +327,11 @@ export async function getWorkspaceCreatorListRows(workspaceId: string, options: 
   return groupWorkspaceCreatorLeads(leads)
     .map(group => {
       const emails = uniqueStrings(group.map(lead => lead.contactEmail ?? ""));
+      // [Claude 2026-06-10] Prefer a directory-linked lead so the drawer resolves the
+      // full deduped history; otherwise fall back to the first lead in the group.
+      const representative = group.find(lead => lead.directoryEntryId) ?? group[0];
       const row = {
+        leadId: representative?.id,
         name: getCreatorGroupDisplayName(group),
         platform: getCreatorGroupPlatforms(group),
         followerNumber: getCreatorGroupFollowerNumber(group),
