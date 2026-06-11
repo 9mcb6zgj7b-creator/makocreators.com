@@ -5,7 +5,7 @@
 import { NextRequest } from "next/server";
 import { Prisma } from "@prisma/client";
 import { z } from "zod";
-import { apiError, notFound, ok } from "@/lib/api";
+import { UserFacingError, apiError, notFound, ok } from "@/lib/api";
 import { getRequestContext } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { startCreatorOutreachAutomation } from "@/lib/conversation-automation";
@@ -59,8 +59,8 @@ export async function POST(req: NextRequest) {
       if (body.styleNote !== undefined) context.styleNote = body.styleNote.trim() || null;
       if (body.referencePost !== undefined) context.referencePost = body.referencePost.trim() || null;
       const instruction = body.instruction?.trim();
-      if (!instruction) throw new Error("Describe how the email should change before rewriting.");
-      if (!body.subject?.trim() || !body.body?.trim()) throw new Error("There is no draft to rewrite yet.");
+      if (!instruction) throw new UserFacingError("Describe how the email should change before rewriting.");
+      if (!body.subject?.trim() || !body.body?.trim()) throw new UserFacingError("There is no draft to rewrite yet.");
       const copy = await rewriteOutreach(context, { subject: body.subject, body: body.body }, instruction);
       return ok({ action: "rewrite", ...copy });
     }

@@ -4,6 +4,7 @@
 // Hard rule: never invent posts, events, metrics, or compliments. If we have no specific
 // signal, we open honestly on niche/location — we do NOT pretend to have watched content.
 // LLM-generated with a deterministic template fallback (mirrors conversation-classifier).
+import { UserFacingError } from "@/lib/api";
 import { prisma } from "@/lib/db";
 
 export type OutreachCopy = { subject: string; body: string };
@@ -94,7 +95,7 @@ export async function buildAnchoredOutreach(context: OutreachContext, override?:
 // configured or fails, we throw so the UI shows an error and keeps the human's draft.
 export async function rewriteOutreach(context: OutreachContext, current: OutreachCopy, instruction: string): Promise<OutreachCopy> {
   if (!process.env.OPENAI_API_KEY) {
-    throw new Error("AI rewrite is not configured yet (missing OPENAI_API_KEY).");
+    throw new UserFacingError("AI rewrite is not configured yet — set OPENAI_API_KEY in the environment.", 503);
   }
 
   const res = await fetch("https://api.openai.com/v1/chat/completions", {
@@ -140,10 +141,13 @@ export async function rewriteOutreach(context: OutreachContext, current: Outreac
     }),
   });
 
-  if (!res.ok) throw new Error(`AI rewrite failed: ${(await res.text()).slice(0, 240)}`);
+  if (!res.ok) {
+    console.error("AI rewrite provider error:", (await res.text()).slice(0, 500));
+    throw new UserFacingError("AI rewrite failed — the language model request did not succeed. Please try again.", 502);
+  }
   const data = (await res.json()) as { choices?: Array<{ message?: { content?: string } }> };
   const parsed = JSON.parse(data.choices?.[0]?.message?.content || "{}") as Partial<OutreachCopy>;
-  if (!parsed.subject || !parsed.body) throw new Error("AI rewrite returned an empty draft. Please try again.");
+  if (!parsed.subject || !parsed.body) throw new UserFacingError("AI rewrite returned an empty draft. Please try again.", 502);
   return { subject: parsed.subject.slice(0, 200), body: parsed.body.slice(0, 4000) };
 }
 
