@@ -41,18 +41,57 @@ export function extractInboundEmailPayload(payload: unknown) {
   const textBody = stringValue(data.text) || stringValue(data.textBody) || stringValue(data.email?.text) || stringValue(data.email?.textBody);
   const htmlBody = stringValue(data.html) || stringValue(data.htmlBody) || stringValue(data.email?.html) || stringValue(data.email?.htmlBody);
   const providerMessageId = stringValue(data.message_id) || stringValue(data.messageId) || stringValue(data.id) || stringValue(data.email?.messageId);
+  const resendEmailId = stringValue(data.email_id);
   const headerThreadId = headers["x-mako-thread-id"];
   const threadId = headerThreadId || extractThreadIdFromEmail(to || "");
 
   return {
     threadId,
     providerMessageId,
+    resendEmailId,
     fromEmail: from,
     toEmail: to,
     subject,
     textBody,
     htmlBody,
     metadata: data,
+  };
+}
+
+export type InboundEmailPayload = ReturnType<typeof extractInboundEmailPayload>;
+
+// [Claude 2026-06-10] Resend's `email.received` webhook only carries metadata — the
+// body and headers must be fetched separately from the Received Emails API. If the
+// webhook payload has no body but does have an email_id, hydrate it here.
+// Docs: https://resend.com/docs/api-reference/emails/retrieve-received-email
+export async function hydrateInboundEmailPayload(inbound: InboundEmailPayload): Promise<InboundEmailPayload> {
+  if (inbound.textBody || inbound.htmlBody) return inbound;
+  if (!inbound.resendEmailId) return inbound;
+
+  const apiKey = process.env.RESEND_API_KEY;
+  if (!apiKey) {
+    console.warn("Inbound email has no body and RESEND_API_KEY is not set; skipping content fetch.");
+    return inbound;
+  }
+
+  const res = await fetch(`https://api.resend.com/emails/receiving/${encodeURIComponent(inbound.resendEmailId)}`, {
+    headers: { Authorization: `Bearer ${apiKey}` },
+  });
+  if (!res.ok) {
+    console.error("Failed to fetch received email content from Resend:", res.status, (await res.text().catch(() => "")).slice(0, 300));
+    return inbound;
+  }
+
+  const data = await res.json() as Record<string, any>;
+  const headers = normalizeHeaders(data.headers);
+  return {
+    ...inbound,
+    threadId: inbound.threadId || headers["x-mako-thread-id"] || null,
+    fromEmail: inbound.fromEmail || extractEmail(data.from),
+    toEmail: inbound.toEmail || extractEmail(data.to),
+    subject: inbound.subject || stringValue(data.subject),
+    textBody: stringValue(data.text),
+    htmlBody: stringValue(data.html),
   };
 }
 
