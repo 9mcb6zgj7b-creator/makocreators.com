@@ -1,21 +1,25 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
+import { UserFacingError } from "@/lib/api";
 
+// [Claude 2026-06-11] Signature failures now return 401 with a specific message so
+// they're distinguishable from downstream processing errors (e.g. unknown thread)
+// when reading webhook delivery logs in the Resend dashboard.
 export function verifyResendWebhookSignature(rawBody: string, headers: Headers) {
   const secret = process.env.RESEND_WEBHOOK_SECRET;
   if (!secret) {
-    throw new Error("RESEND_WEBHOOK_SECRET is not configured.");
+    throw new UserFacingError("RESEND_WEBHOOK_SECRET is not configured on the server.", 401);
   }
 
   const svixId = headers.get("svix-id");
   const svixTimestamp = headers.get("svix-timestamp");
   const svixSignature = headers.get("svix-signature");
   if (!svixId || !svixTimestamp || !svixSignature) {
-    throw new Error("Missing Resend webhook signature headers.");
+    throw new UserFacingError("Missing Resend webhook signature headers.", 401);
   }
 
   const timestampMs = Number(svixTimestamp) * 1000;
   if (!Number.isFinite(timestampMs) || Math.abs(Date.now() - timestampMs) > 5 * 60 * 1000) {
-    throw new Error("Resend webhook timestamp is outside the allowed window.");
+    throw new UserFacingError("Resend webhook timestamp is outside the allowed window.", 401);
   }
 
   const signedPayload = `${svixId}.${svixTimestamp}.${rawBody}`;
@@ -28,7 +32,7 @@ export function verifyResendWebhookSignature(rawBody: string, headers: Headers) 
   });
 
   if (!valid) {
-    throw new Error("Invalid Resend webhook signature.");
+    throw new UserFacingError("Invalid Resend webhook signature — check that RESEND_WEBHOOK_SECRET matches the webhook's signing secret.", 401);
   }
 }
 

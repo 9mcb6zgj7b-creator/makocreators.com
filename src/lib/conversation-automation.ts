@@ -1,4 +1,5 @@
 import { Approval, ConversationThread, ConversationThreadState, Prisma } from "@prisma/client";
+import { UserFacingError } from "@/lib/api";
 import { prisma } from "@/lib/db";
 import {
   buildAssetApprovalEmailCopy,
@@ -276,7 +277,9 @@ export async function recordInboundCreatorReply(input: {
   metadata?: Prisma.InputJsonValue;
 }) {
   const thread = await findInboundThread(input);
-  if (!thread) throw new Error("Conversation thread not found for inbound email.");
+  // [Claude 2026-06-11] 404 with a specific message so test emails to nonexistent
+  // threads are distinguishable from real failures in Resend's webhook logs.
+  if (!thread) throw new UserFacingError("No conversation thread matches this inbound email (signature was valid).", 404);
 
   // [Claude 2026-06-10] Security fix (H1): thread routing (X-Mako-Thread-ID header and
   // the to-address) is fully controlled by the external sender, so it must not be trusted
