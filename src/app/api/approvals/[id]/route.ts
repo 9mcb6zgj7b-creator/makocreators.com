@@ -2,7 +2,7 @@ import { NextRequest } from "next/server";
 import { ApprovalStatus } from "@prisma/client";
 import { z } from "zod";
 import { apiError, notFound, ok } from "@/lib/api";
-import { getRequestContext } from "@/lib/auth";
+import { getRequestContext, requireApproverRole } from "@/lib/auth";
 import { handleApprovedConversationApproval, handleReviewedConversationApproval } from "@/lib/conversation-automation";
 import { prisma } from "@/lib/db";
 
@@ -15,7 +15,8 @@ const updateApprovalSchema = z.object({
 
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
   try {
-    const { user, workspace } = await getRequestContext();
+    const { user, workspace, role } = await getRequestContext();
+    requireApproverRole(role);
     const body = updateApprovalSchema.parse(await req.json());
 
     // [Claude 2026-06-09] Security fix: read the current status so we only run the

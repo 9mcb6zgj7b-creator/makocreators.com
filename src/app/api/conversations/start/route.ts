@@ -1,7 +1,7 @@
 import { NextRequest } from "next/server";
 import { z } from "zod";
 import { apiError, ok } from "@/lib/api";
-import { getRequestContext } from "@/lib/auth";
+import { getRequestContext, requireApproverRole } from "@/lib/auth";
 import { startCreatorOutreachAutomation } from "@/lib/conversation-automation";
 
 export const dynamic = "force-dynamic";
@@ -13,7 +13,8 @@ const schema = z.object({
 
 export async function POST(req: NextRequest) {
   try {
-    const { user, workspace } = await getRequestContext();
+    const { user, workspace, role } = await getRequestContext();
+    requireApproverRole(role);
     const body = schema.parse(await req.json().catch(() => ({})));
     const result = await startCreatorOutreachAutomation(workspace.id, user.id, body);
     return ok(result);

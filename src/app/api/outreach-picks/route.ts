@@ -6,7 +6,7 @@ import { NextRequest } from "next/server";
 import { Prisma } from "@prisma/client";
 import { z } from "zod";
 import { UserFacingError, apiError, notFound, ok } from "@/lib/api";
-import { getRequestContext } from "@/lib/auth";
+import { getRequestContext, requireApproverRole } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { startCreatorOutreachAutomation } from "@/lib/conversation-automation";
 import { getOutreachPicks, SNOOZE_METADATA_KEY } from "@/lib/outreach-picks";
@@ -38,7 +38,7 @@ export async function GET() {
 
 export async function POST(req: NextRequest) {
   try {
-    const { user, workspace } = await getRequestContext();
+    const { user, workspace, role } = await getRequestContext();
     const body = actionSchema.parse(await req.json());
 
     if (body.action === "preview") {
@@ -66,6 +66,8 @@ export async function POST(req: NextRequest) {
     }
 
     if (body.action === "approve") {
+      // [Claude 2026-06-10] M5: approving sends a real external email — OWNER/ADMIN only.
+      requireApproverRole(role);
       await saveCreatorSignal(workspace.id, body.leadId, body.styleNote, body.referencePost);
       const firstMessage = body.subject && body.body ? { subject: body.subject, body: body.body } : undefined;
       const result = await startCreatorOutreachAutomation(workspace.id, user.id, { creatorLeadIds: [body.leadId], firstMessage });

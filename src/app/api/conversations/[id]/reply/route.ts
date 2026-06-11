@@ -4,7 +4,7 @@
 import { NextRequest } from "next/server";
 import { z } from "zod";
 import { UserFacingError, apiError, notFound, ok } from "@/lib/api";
-import { getRequestContext } from "@/lib/auth";
+import { getRequestContext, requireApproverRole } from "@/lib/auth";
 import { buildUnsubscribeUrl, sendConversationEmail } from "@/lib/conversation-email";
 import { prisma } from "@/lib/db";
 
@@ -16,7 +16,8 @@ const schema = z.object({
 
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
   try {
-    const { user, workspace } = await getRequestContext();
+    const { user, workspace, role } = await getRequestContext();
+    requireApproverRole(role);
     const body = schema.parse(await req.json());
 
     const thread = await prisma.conversationThread.findFirst({

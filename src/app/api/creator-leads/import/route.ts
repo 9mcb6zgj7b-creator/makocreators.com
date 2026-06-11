@@ -37,7 +37,10 @@ export async function POST(req: NextRequest) {
     const candidates = rows.slice(0, MAX_IMPORT_ROWS).map(excelRowToCreatorLead).filter(input => input !== null);
     const looseInputs = isCsv ? extractLooseContactsFromText(csvText) : extractLooseContactsFromRows(rows);
     const importInputs = candidates.length ? mergeCreatorLeadInputs(candidates) : dedupeCreatorLeadInputs(looseInputs);
-    const validInputs = dedupeCreatorLeadInputs(importInputs);
+    // [Claude 2026-06-10] M3 fix: the loose-contact scan had no row cap, so a file
+    // stuffed with thousands of emails/URLs produced an unbounded DB transaction.
+    // Cap the final input list the same way structured rows are capped.
+    const validInputs = dedupeCreatorLeadInputs(importInputs).slice(0, MAX_IMPORT_ROWS);
 
     if (!validInputs.length) {
       throw new Error("No importable creator contacts were found. Please include creator emails or profile URLs.");

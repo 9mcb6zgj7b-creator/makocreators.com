@@ -204,6 +204,27 @@ export async function getRequestContext() {
   };
 }
 
+// [Claude 2026-06-10] L4 fix: expired sessions, stale login challenges, and old
+// rate-limit windows previously accumulated forever. Called from the daily cron.
+export async function purgeExpiredAuthRows() {
+  const now = new Date();
+  const dayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+  const [sessions, challenges, rateLimits] = await Promise.all([
+    prisma.session.deleteMany({ where: { expiresAt: { lt: now } } }),
+    prisma.loginChallenge.deleteMany({ where: { expiresAt: { lt: dayAgo } } }),
+    prisma.authRateLimit.deleteMany({ where: { resetAt: { lt: dayAgo } } }),
+  ]);
+  return { sessions: sessions.count, challenges: challenges.count, rateLimits: rateLimits.count };
+}
+
+// [Claude 2026-06-10] M5 fix: minimal RBAC. Approving external sends and triggering
+// outreach are restricted to OWNER/ADMIN; MEMBER can still browse, draft, and import.
+export function requireApproverRole(role: string) {
+  if (role !== "OWNER" && role !== "ADMIN") {
+    throw new AuthError("Only workspace owners or admins can approve or send external messages.", 403);
+  }
+}
+
 export function getSessionCookieOptions() {
   return {
     httpOnly: true,
@@ -295,14 +316,17 @@ async function enforceAuthRateLimit(action: string, key: string, limit: number, 
     return;
   }
 
-  if (existing.count >= limit) {
-    throw new AuthError("Too many authentication attempts. Please try again later.", 429);
-  }
-
-  await prisma.authRateLimit.update({
+  // [Claude 2026-06-10] M6 fix: increment atomically FIRST, then check the returned
+  // count. The previous check-then-increment let a concurrent burst all read the same
+  // stale count and slip past the limit together.
+  const updated = await prisma.authRateLimit.update({
     where: { id: existing.id },
     data: { count: { increment: 1 } },
   });
+
+  if (updated.count > limit) {
+    throw new AuthError("Too many authentication attempts. Please try again later.", 429);
+  }
 }
 
 function slugify(value: string) {

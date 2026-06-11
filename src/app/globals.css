@@ -7,6 +7,9 @@
   --line: #e4e6ea;
   --blue: #1e5bff;
   --orange: #ff5a1f;
+  /* [Claude 2026-06-10] L9 fix: --accent was referenced in ~20 rules but never
+     defined, so those rules silently inherited the wrong color. */
+  --accent: #f97316;
   --shadow: 0 14px 34px rgba(16, 17, 20, 0.04);
 }
 

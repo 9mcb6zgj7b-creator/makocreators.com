@@ -53,6 +53,9 @@ export async function startCreatorOutreachAutomation(workspaceId: string, userId
     },
   });
 
+  // [Claude 2026-06-10] L5: brand name is per-workspace, not per-lead — fetch once.
+  const brandName = await getWorkspaceBrandName(workspaceId);
+
   const results = [];
   for (const lead of leads) {
     if (!lead.contactEmail) continue;
@@ -91,7 +94,6 @@ export async function startCreatorOutreachAutomation(workspaceId: string, userId
     }
 
     const creatorName = lead.displayName || lead.handle || lead.contactEmail.split("@")[0];
-    const brandName = await getWorkspaceBrandName(workspaceId);
     const draft = await prisma.outreachDraft.create({
       data: {
         workspaceId,
@@ -195,10 +197,18 @@ export async function processDueConversationThreads() {
     take: CRON_BATCH_SIZE,
   });
 
+  // [Claude 2026-06-10] M4 fix: isolate failures per thread. Previously one failed
+  // send threw out of the loop, 500ing the whole cron run and starving every thread
+  // behind the broken one (and the batch would retry from scratch next run).
   const results = [];
   for (const thread of threads) {
-    const result = await processDueThread(thread);
-    results.push(result);
+    try {
+      const result = await processDueThread(thread);
+      results.push(result);
+    } catch (error) {
+      console.error(`Cron: processing thread ${thread.id} failed`, error);
+      results.push({ threadId: thread.id, status: "error" as const });
+    }
   }
   return { processed: results.length, results };
 }
