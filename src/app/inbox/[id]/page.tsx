@@ -3,7 +3,9 @@
 // internal system notes.
 import { notFound } from "next/navigation";
 import { AppShell } from "@/components/app-shell";
+import { CalendarInviteSuggestion } from "@/components/calendar-invite-suggestion";
 import { InboxReplyForm } from "@/components/inbox-reply-form";
+import { extractVisitDateHint } from "@/lib/calendar-invite";
 import { prisma } from "@/lib/db";
 import { requirePageContext } from "@/lib/page-auth";
 import { describeThreadState, formatTimestamp } from "@/lib/inbox-format";
@@ -25,6 +27,17 @@ export default async function InboxThreadPage({ params }: { params: { id: string
 
   const creatorName = thread.creatorLead?.displayName || thread.creatorLead?.handle || thread.creatorEmail || "Unknown creator";
   const stateInfo = describeThreadState(thread.state);
+
+  // [Claude 2026-06-11] If the latest creator reply mentions a concrete date, suggest
+  // sending a calendar invite to the signed-in user's email. The suggestion is hidden
+  // once an invite for this thread already appears in the message history.
+  const lastInbound = [...thread.messages].reverse().find(message => message.direction === "INBOUND");
+  const inviteAlreadySent = thread.messages.some(
+    message => message.direction === "INTERNAL" && message.subject === "Calendar invite sent"
+  );
+  const dateHint = !inviteAlreadySent && lastInbound
+    ? extractVisitDateHint(lastInbound.textBody || "")
+    : null;
 
   return (
     <AppShell
@@ -67,6 +80,16 @@ export default async function InboxThreadPage({ params }: { params: { id: string
             );
           })}
         </div>
+
+        {dateHint && user.email ? (
+          <CalendarInviteSuggestion
+            threadId={thread.id}
+            creatorName={creatorName}
+            userEmail={user.email}
+            detectedDate={dateHint.iso}
+            detectedRaw={dateHint.raw}
+          />
+        ) : null}
 
         {thread.creatorEmail ? (
           <InboxReplyForm
