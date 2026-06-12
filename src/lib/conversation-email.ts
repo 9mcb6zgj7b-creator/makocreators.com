@@ -23,7 +23,7 @@ export async function sendConversationEmail(input: ConversationEmailInput): Prom
   // [Claude 2026-06-11] Always rebuild the reply-to from the CURRENT env instead of
   // trusting thread.replyToEmail: threads created before INBOUND_EMAIL_DOMAIN was
   // corrected have a stale domain baked in, which bounced every creator reply.
-  const replyTo = buildThreadReplyTo(input.thread.id);
+  const replyTo = getOutreachReplyAddress();
   const res = await fetch("https://api.resend.com/emails", {
     method: "POST",
     headers: {
@@ -51,9 +51,21 @@ export async function sendConversationEmail(input: ConversationEmailInput): Prom
   return { provider: "resend", providerMessageId: data.id ?? null };
 }
 
-export function buildThreadReplyTo(threadId: string) {
-  const domain = process.env.INBOUND_EMAIL_DOMAIN || "inbound.makocreators.com";
-  return `thread+${threadId}@${domain}`;
+// [Claude 2026-06-12] Professional reply address: replies go to a normal-looking
+// mailbox (mike@makocreators.com) instead of thread+<id>@..., which read as spam.
+// Inbound routing now matches the SENDER's email to their most recent thread;
+// legacy thread+<id> addresses on already-sent emails keep working.
+export function getOutreachReplyAddress() {
+  const configured = process.env.OUTREACH_REPLY_EMAIL?.trim();
+  if (configured) return configured;
+  const fromMatch = (process.env.RESEND_FROM_EMAIL || "").match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i);
+  if (fromMatch) return fromMatch[0];
+  const domain = process.env.INBOUND_EMAIL_DOMAIN || "makocreators.com";
+  return `mike@${domain}`;
+}
+
+export function buildThreadReplyTo(_threadId: string) {
+  return getOutreachReplyAddress();
 }
 
 export function buildUnsubscribeUrl(threadId: string) {

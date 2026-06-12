@@ -348,20 +348,29 @@ export async function recordInboundCreatorReply(input: {
   return { threadId: thread.id, classification };
 }
 
-async function findInboundThread(input: { threadId?: string | null; toEmail?: string | null }) {
+async function findInboundThread(input: { threadId?: string | null; toEmail?: string | null; fromEmail?: string | null }) {
   if (input.threadId) {
     const byId = await prisma.conversationThread.findUnique({ where: { id: input.threadId } });
     if (byId) return byId;
   }
 
+  // Legacy thread+<id>@ addresses on emails sent before the clean reply address.
   const threadIdFromTo = extractThreadIdFromEmail(input.toEmail || "");
   if (threadIdFromTo) {
     const byReplyTo = await prisma.conversationThread.findUnique({ where: { id: threadIdFromTo } });
     if (byReplyTo) return byReplyTo;
   }
 
-  if (input.toEmail) {
-    return prisma.conversationThread.findFirst({ where: { replyToEmail: input.toEmail }, orderBy: { createdAt: "desc" } });
+  // [Claude 2026-06-12] Primary routing for the clean reply address: a reply belongs
+  // to the sender's most recent thread. (The old replyToEmail-equality fallback was
+  // removed — every thread now shares one reply address, so it would mis-route.)
+  const fromEmail = input.fromEmail?.trim().toLowerCase();
+  if (fromEmail) {
+    const bySender = await prisma.conversationThread.findFirst({
+      where: { creatorEmail: fromEmail },
+      orderBy: [{ lastMessageAt: { sort: "desc", nulls: "last" } }, { createdAt: "desc" }],
+    });
+    if (bySender) return bySender;
   }
 
   return null;
