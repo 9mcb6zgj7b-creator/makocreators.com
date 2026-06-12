@@ -11,16 +11,20 @@ export function CalendarInviteSuggestion({
   userEmail,
   detectedDate,
   detectedRaw,
+  detectedTime,
+  detectedRawTime,
 }: {
   threadId: string;
   creatorName: string;
   userEmail: string;
   detectedDate: string;
   detectedRaw: string;
+  detectedTime?: string | null;
+  detectedRawTime?: string | null;
 }) {
   const router = useRouter();
   const [date, setDate] = useState(detectedDate);
-  const [time, setTime] = useState("");
+  const [time, setTime] = useState(detectedTime || "");
   const [sending, setSending] = useState(false);
   const [sentTo, setSentTo] = useState("");
   const [googleLink, setGoogleLink] = useState("");
@@ -71,7 +75,7 @@ export function CalendarInviteSuggestion({
     <aside className="calendar-suggestion" aria-label="Calendar suggestion">
       <p className="calendar-suggestion-title">Schedule this visit?</p>
       <p className="calendar-suggestion-text">
-        {creatorName} mentioned <strong>{detectedRaw}</strong> in their reply. Send a calendar invite to {userEmail}?
+        {creatorName} mentioned <strong>{detectedRaw}{detectedRawTime ? ` · ${detectedRawTime}` : ""}</strong> in their reply. Send a calendar invite to {userEmail}?
       </p>
       <div className="calendar-suggestion-controls">
         <label>

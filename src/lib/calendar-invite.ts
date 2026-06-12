@@ -9,7 +9,47 @@ import { UserFacingError } from "@/lib/api";
 export type VisitDateHint = {
   iso: string; // YYYY-MM-DD
   raw: string; // the matched text, e.g. "June 20" or "6月20号"
+  time: string | null; // HH:MM (24h), e.g. "19:00"
+  rawTime: string | null; // the matched text, e.g. "7pm" or "下午7点"
 };
+
+// [Claude 2026-06-12] Also scan for a time-of-day mention ("7pm", "7:30 pm", "19:00",
+// "下午7点", "7点半") so the suggestion can prefill the time, not just the date.
+export function extractVisitTimeHint(text: string): { time: string; raw: string } | null {
+  const ampm = text.match(/\b(\d{1,2})(?::([0-5]\d))?\s*(a\.?m\.?|p\.?m\.?)\b/i);
+  if (ampm) {
+    let hour = Number(ampm[1]);
+    const minute = ampm[2] ? Number(ampm[2]) : 0;
+    if (hour >= 1 && hour <= 12) {
+      const isPm = ampm[3].toLowerCase().startsWith("p");
+      if (isPm && hour !== 12) hour += 12;
+      if (!isPm && hour === 12) hour = 0;
+      return { time: formatTime(hour, minute), raw: ampm[0].trim() };
+    }
+  }
+
+  const chinese = text.match(/(早上|上午|中午|下午|晚上)?\s*(\d{1,2})\s*点\s*(半|[0-5]?\d\s*分)?/);
+  if (chinese) {
+    let hour = Number(chinese[2]);
+    if (hour >= 0 && hour <= 23) {
+      const period = chinese[1] || "";
+      if ((period === "下午" || period === "晚上") && hour < 12) hour += 12;
+      const minute = chinese[3] === "半" ? 30 : chinese[3] ? Number(chinese[3].replace(/[分\s]/g, "")) : 0;
+      return { time: formatTime(hour, minute), raw: chinese[0].trim() };
+    }
+  }
+
+  const h24 = text.match(/\b([01]?\d|2[0-3]):([0-5]\d)\b/);
+  if (h24) {
+    return { time: formatTime(Number(h24[1]), Number(h24[2])), raw: h24[0] };
+  }
+
+  return null;
+}
+
+function formatTime(hour: number, minute: number) {
+  return `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`;
+}
 
 const MONTH_NAMES: Record<string, number> = {
   jan: 1, feb: 2, mar: 3, apr: 4, may: 5, jun: 6,
@@ -50,6 +90,12 @@ export function stripQuotedReply(text: string) {
 export function extractVisitDateHint(rawText: string, now = new Date()): VisitDateHint | null {
   if (!rawText) return null;
   const text = stripQuotedReply(rawText);
+  const timeHint = extractVisitTimeHint(text);
+  const withTime = (hint: { iso: string; raw: string }): VisitDateHint => ({
+    ...hint,
+    time: timeHint?.time ?? null,
+    rawTime: timeHint?.raw ?? null,
+  });
 
   // English month-name format: "June 20", "Jun 20th"
   const monthName = text.match(/\b(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\.?\s+(\d{1,2})(?:st|nd|rd|th)?\b/i);
@@ -57,21 +103,21 @@ export function extractVisitDateHint(rawText: string, now = new Date()): VisitDa
     const month = MONTH_NAMES[monthName[1].toLowerCase()];
     const day = Number(monthName[2]);
     const iso = buildUpcomingIso(month, day, now);
-    if (iso) return { iso, raw: monthName[0].trim() };
+    if (iso) return withTime({ iso, raw: monthName[0].trim() });
   }
 
   // Chinese format: "6月20日" / "6月20号"
   const chinese = text.match(/(\d{1,2})\s*月\s*(\d{1,2})\s*[日号]/);
   if (chinese) {
     const iso = buildUpcomingIso(Number(chinese[1]), Number(chinese[2]), now);
-    if (iso) return { iso, raw: chinese[0].trim() };
+    if (iso) return withTime({ iso, raw: chinese[0].trim() });
   }
 
   // Numeric format: "6/20" or "6-20" (US month-first; skip if it looks like a year)
   const numeric = text.match(/\b(\d{1,2})[\/-](\d{1,2})\b(?![\/-]?\d)/);
   if (numeric) {
     const iso = buildUpcomingIso(Number(numeric[1]), Number(numeric[2]), now);
-    if (iso) return { iso, raw: numeric[0].trim() };
+    if (iso) return withTime({ iso, raw: numeric[0].trim() });
   }
 
   return null;

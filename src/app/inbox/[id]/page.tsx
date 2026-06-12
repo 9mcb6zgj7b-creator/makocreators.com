@@ -88,6 +88,8 @@ export default async function InboxThreadPage({ params }: { params: { id: string
             userEmail={user.email}
             detectedDate={dateHint.iso}
             detectedRaw={dateHint.raw}
+            detectedTime={dateHint.time}
+            detectedRawTime={dateHint.rawTime}
           />
         ) : null}
 
