@@ -1,17 +1,19 @@
 import { AppShell, Icon } from "@/components/app-shell";
 import { OpsMetricCards } from "@/components/ops-metric-cards";
 import { OutreachPicksPanel } from "@/components/outreach-picks-panel";
-import { getOpsOverview, getWorkspaceCreatorListRows } from "@/lib/ops-overview";
+import { TodayTodoPanel } from "@/components/today-todo-panel";
+import { getOpenOpsTasks, getOpsOverview, getWorkspaceCreatorListRows } from "@/lib/ops-overview";
 import { requirePageContext } from "@/lib/page-auth";
 
 export const dynamic = "force-dynamic";
 
 export default async function OpsPage() {
   const { user, workspace, role } = await requirePageContext("/ops");
-  const [overview, creatorRows, contactableCreatorRows] = await Promise.all([
+  const [overview, creatorRows, contactableCreatorRows, openTasks] = await Promise.all([
     getOpsOverview(workspace.id),
     getWorkspaceCreatorListRows(workspace.id),
     getWorkspaceCreatorListRows(workspace.id, { contactableOnly: true }),
+    getOpenOpsTasks(workspace.id),
   ]);
 
   return (
@@ -45,20 +47,11 @@ export default async function OpsPage() {
           </div>
         </section>
 
-        {/* [Claude 2026-06-10] Feature 3 — daily "who to contact today" picks. */}
-        <OutreachPicksPanel />
-
-        <section className="ops-workflow-strip" aria-label="Core MVP workflow">
-          {coreWorkflowSteps.map((step, index) => (
-            <article key={step.title}>
-              <span>{index + 1}</span>
-              <div>
-                <strong>{step.title}</strong>
-                <p>{step.summary}</p>
-              </div>
-            </article>
-          ))}
-        </section>
+        {/* [Claude 2026-06-11] "Today's To-Do" replaces the standalone picks panel and
+            the 1-5 workflow strip: one card with everything to clear today. */}
+        <TodayTodoPanel approvals={overview.approvals} tasks={openTasks}>
+          <OutreachPicksPanel />
+        </TodayTodoPanel>
 
         <OpsMetricCards
           metrics={overview.metrics}
@@ -66,31 +59,9 @@ export default async function OpsPage() {
           contactableCreators={contactableCreatorRows}
           approvals={overview.approvals}
           reviewedApprovals={overview.reviewedApprovals}
+          tasks={openTasks}
         />
       </section>
     </AppShell>
   );
 }
-
-const coreWorkflowSteps = [
-  {
-    title: "Start with creator leads",
-    summary: "Bring in creator profiles, links, or imported pipeline records.",
-  },
-  {
-    title: "Score and split paths",
-    summary: "Choose product seeding, AI content collab, hold, or review.",
-  },
-  {
-    title: "Prepare safe drafts",
-    summary: "Generate outreach, concepts, scripts, and internal next steps.",
-  },
-  {
-    title: "Route approvals",
-    summary: "Gate sending, samples, payment, rights, publishing, and ads.",
-  },
-  {
-    title: "Human executes",
-    summary: "The user approves and performs external actions outside Mako.",
-  },
-];

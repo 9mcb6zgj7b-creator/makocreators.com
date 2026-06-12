@@ -291,6 +291,42 @@ export async function getOpsOverview(workspaceId: string): Promise<OpsOverview> 
   };
 }
 
+// [Claude 2026-06-11] Open dashboard tasks with details, so the UI can show what the
+// "Open ops tasks" count actually contains (and let the user clear them).
+export type OpsTask = {
+  id: string;
+  title: string;
+  description: string | null;
+  type: string;
+  priority: number;
+  status: string;
+  createdAt: string;
+  threadId: string | null;
+};
+
+export async function getOpenOpsTasks(workspaceId: string): Promise<OpsTask[]> {
+  if (!process.env.DATABASE_URL) return [];
+  const tasks = await prisma.dashboardTask.findMany({
+    where: { workspaceId, status: { in: ["OPEN", "IN_PROGRESS"] } },
+    orderBy: [{ priority: "desc" }, { createdAt: "desc" }],
+    take: 30,
+  });
+
+  return tasks.map(task => {
+    const metadata = isRecord(task.metadata) ? task.metadata : {};
+    return {
+      id: task.id,
+      title: task.title,
+      description: task.description,
+      type: formatApprovalType(task.type),
+      priority: task.priority,
+      status: formatApprovalType(task.status),
+      createdAt: task.createdAt.toISOString(),
+      threadId: typeof metadata.threadId === "string" ? metadata.threadId : null,
+    };
+  });
+}
+
 export async function getWorkspaceCreatorListRows(workspaceId: string, options: { contactableOnly?: boolean } = {}): Promise<OpsCreatorListRow[]> {
   if (!process.env.DATABASE_URL) {
     return previewCreators

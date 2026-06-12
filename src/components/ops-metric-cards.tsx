@@ -2,9 +2,10 @@
 
 import { useState } from "react";
 import { ApprovalActions, ReopenApprovalButton } from "@/components/approval-actions";
-import type { OpsApproval, OpsCreatorListRow, OpsMetric } from "@/lib/ops-overview";
+import { OpsTaskList } from "@/components/ops-task-list";
+import type { OpsApproval, OpsCreatorListRow, OpsMetric, OpsTask } from "@/lib/ops-overview";
 
-type ActiveList = "all" | "contactable" | "approvals" | null;
+type ActiveList = "all" | "contactable" | "approvals" | "tasks" | null;
 
 export function OpsMetricCards({
   metrics,
@@ -12,21 +13,27 @@ export function OpsMetricCards({
   contactableCreators,
   approvals,
   reviewedApprovals = [], // [Claude 2026-06-10]
+  tasks = [], // [Claude 2026-06-11] open ops tasks for the 4th card's modal
 }: {
   metrics: OpsMetric[];
   creators: OpsCreatorListRow[];
   contactableCreators: OpsCreatorListRow[];
   approvals: OpsApproval[];
   reviewedApprovals?: OpsApproval[];
+  tasks?: OpsTask[];
 }) {
   const [activeList, setActiveList] = useState<ActiveList>(null);
   const activeRows = activeList === "contactable" ? contactableCreators : creators;
-  const activeTitle = activeList === "approvals" ? "Approvals" : activeList === "contactable" ? "Contactable Creators" : "Creators Tracked";
-  const activeDescription = activeList === "approvals"
-    ? "Pending human approval gates, plus recently reviewed decisions you can reopen."
-    : activeList === "contactable"
-      ? "Creators in this workspace with an email available for outreach preparation."
-      : "Unique creators saved or imported in this workspace.";
+  const activeTitle = activeList === "tasks"
+    ? "Open Ops Tasks"
+    : activeList === "approvals" ? "Approvals" : activeList === "contactable" ? "Contactable Creators" : "Creators Tracked";
+  const activeDescription = activeList === "tasks"
+    ? "Follow-ups and review work created by outreach automation. Mark items done to clear them."
+    : activeList === "approvals"
+      ? "Pending human approval gates, plus recently reviewed decisions you can reopen."
+      : activeList === "contactable"
+        ? "Creators in this workspace with an email available for outreach preparation."
+        : "Unique creators saved or imported in this workspace.";
 
   return (
     <>
@@ -68,6 +75,18 @@ export function OpsMetricCards({
             );
           }
 
+          if (metric.label === "Open ops tasks") {
+            return (
+              <MetricAction
+                key={metric.label}
+                label={metric.label}
+                value={metric.value}
+                note={metric.note}
+                onOpen={() => setActiveList("tasks")}
+              />
+            );
+          }
+
           return <Metric key={metric.label} label={metric.label} value={metric.value} note={metric.note} />;
         })}
       </section>
@@ -92,7 +111,9 @@ export function OpsMetricCards({
               </button>
             </div>
 
-            {activeList === "approvals" ? (
+            {activeList === "tasks" ? (
+              <OpsTaskList tasks={tasks} />
+            ) : activeList === "approvals" ? (
               <ApprovalList approvals={approvals} reviewedApprovals={reviewedApprovals} />
             ) : (
               <CreatorTable activeRows={activeRows} activeList={activeList} activeTitle={activeTitle} />
