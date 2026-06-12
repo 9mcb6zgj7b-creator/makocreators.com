@@ -16,8 +16,40 @@ const MONTH_NAMES: Record<string, number> = {
   jul: 7, aug: 8, sep: 9, oct: 10, nov: 11, dec: 12,
 };
 
-export function extractVisitDateHint(text: string, now = new Date()): VisitDateHint | null {
-  if (!text) return null;
+// [Claude 2026-06-12] Bug fix: email bodies contain quoted reply history, including
+// Gmail's attribution line ("On Wed, Jun 11, 2026 at 4:52 PM Mike <...> wrote:"),
+// whose date was being picked up as the "mentioned" visit date. Strip quoted content
+// before scanning so only the creator's OWN words are considered.
+export function stripQuotedReply(text: string) {
+  let cut = text.length;
+
+  // Gmail / Apple Mail attribution: "On <date> ... wrote:" (possibly wrapped).
+  const onWrote = text.match(/\bOn [^\n]{0,160}?\n?[^\n]{0,160}?wrote:/i);
+  if (onWrote && typeof onWrote.index === "number") cut = Math.min(cut, onWrote.index);
+
+  // Chinese Gmail attribution: "在 ... 写道："
+  const chineseWrote = text.match(/在[^\n]{0,160}写道[:：]/);
+  if (chineseWrote && typeof chineseWrote.index === "number") cut = Math.min(cut, chineseWrote.index);
+
+  // Outlook-style separators and forwarded headers.
+  for (const marker of ["-----Original Message-----", "________________________________"]) {
+    const index = text.indexOf(marker);
+    if (index >= 0) cut = Math.min(cut, index);
+  }
+  const fromHeader = text.match(/^From:\s.+$/m);
+  if (fromHeader && typeof fromHeader.index === "number") cut = Math.min(cut, fromHeader.index);
+
+  // Drop classic ">" quote lines anywhere in what remains.
+  return text
+    .slice(0, cut)
+    .split("\n")
+    .filter(line => !line.trimStart().startsWith(">"))
+    .join("\n");
+}
+
+export function extractVisitDateHint(rawText: string, now = new Date()): VisitDateHint | null {
+  if (!rawText) return null;
+  const text = stripQuotedReply(rawText);
 
   // English month-name format: "June 20", "Jun 20th"
   const monthName = text.match(/\b(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\.?\s+(\d{1,2})(?:st|nd|rd|th)?\b/i);
