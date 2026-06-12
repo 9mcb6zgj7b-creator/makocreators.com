@@ -20,7 +20,10 @@ export async function sendConversationEmail(input: ConversationEmailInput): Prom
     throw new Error("Resend is not configured for outbound creator outreach.");
   }
 
-  const replyTo = input.thread.replyToEmail || buildThreadReplyTo(input.thread.id);
+  // [Claude 2026-06-11] Always rebuild the reply-to from the CURRENT env instead of
+  // trusting thread.replyToEmail: threads created before INBOUND_EMAIL_DOMAIN was
+  // corrected have a stale domain baked in, which bounced every creator reply.
+  const replyTo = buildThreadReplyTo(input.thread.id);
   const res = await fetch("https://api.resend.com/emails", {
     method: "POST",
     headers: {
