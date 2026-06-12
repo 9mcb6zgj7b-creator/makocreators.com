@@ -1,12 +1,13 @@
 import type { ReactNode } from "react";
 import { LogoutButton } from "@/components/logout-button";
 
-type NavKey = "home" | "ops" | "inbox" | "creators" | "campaigns" | "reports";
+type NavKey = "home" | "ops" | "inbox" | "calendar" | "creators" | "campaigns" | "reports";
 
 const navigation: Array<{ key: NavKey; label: string; href: string; icon: string }> = [
   { key: "home", label: "Home", href: "/dashboard", icon: "home" },
   { key: "ops", label: "Ops", href: "/ops", icon: "shield" },
   { key: "inbox", label: "Inbox", href: "/inbox", icon: "message" },
+  { key: "calendar", label: "Calendar", href: "/calendar", icon: "calendar" },
   { key: "campaigns", label: "Campaigns", href: "/campaigns", icon: "plan" },
   { key: "reports", label: "Reports", href: "/reports", icon: "report" },
 ];

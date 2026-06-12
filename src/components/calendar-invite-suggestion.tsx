@@ -67,6 +67,9 @@ export function CalendarInviteSuggestion({
             </>
           ) : null}
         </p>
+        <p className="calendar-suggestion-text" style={{ marginTop: 8 }}>
+          <a className="calendar-view-link" href="/calendar">View all visits in your calendar →</a>
+        </p>
       </aside>
     );
   }

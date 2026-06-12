@@ -2364,6 +2364,147 @@ h2 {
   color: #8a8f99;
 }
 
+.calendar-nav {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  font-size: 15px;
+}
+
+.calendar-nav-button {
+  border: 1px solid #e8e3da;
+  background: #fff;
+  border-radius: 9px;
+  padding: 6px 12px;
+  text-decoration: none;
+  color: #1f2733;
+  font-weight: 800;
+}
+
+.calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 6px;
+  background: #fff;
+  border: 1px solid #e8e3da;
+  border-radius: 16px;
+  padding: 14px;
+}
+
+.calendar-grid-head {
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #8a8f99;
+  padding: 4px 6px;
+}
+
+.calendar-cell {
+  min-height: 92px;
+  border: 1px solid #f1ede6;
+  border-radius: 10px;
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.calendar-cell.empty {
+  border-color: transparent;
+  background: transparent;
+}
+
+.calendar-cell.today {
+  border-color: #fed7aa;
+  background: #fffaf5;
+}
+
+.calendar-day-number {
+  font-size: 12px;
+  font-weight: 800;
+  color: #8a8f99;
+}
+
+.calendar-cell.today .calendar-day-number {
+  color: #c2410c;
+}
+
+.calendar-event {
+  display: flex;
+  flex-direction: column;
+  background: #fff7ed;
+  border: 1px solid #fed7aa;
+  border-radius: 8px;
+  padding: 4px 7px;
+  text-decoration: none;
+  color: #1f2733;
+}
+
+.calendar-event strong {
+  font-size: 11px;
+  color: #c2410c;
+}
+
+.calendar-event span {
+  font-size: 11px;
+  color: #687080;
+  font-weight: 600;
+}
+
+.calendar-upcoming {
+  margin-top: 22px;
+}
+
+.calendar-upcoming h2 {
+  font-size: 17px;
+  margin: 0 0 10px;
+}
+
+.calendar-upcoming ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.calendar-upcoming li a {
+  display: flex;
+  gap: 14px;
+  align-items: baseline;
+  border: 1px solid #e8e3da;
+  background: #fff;
+  border-radius: 12px;
+  padding: 10px 16px;
+  text-decoration: none;
+  color: #1f2733;
+}
+
+.calendar-upcoming li a strong {
+  font-size: 13px;
+  color: #c2410c;
+  white-space: nowrap;
+}
+
+.calendar-upcoming li a span {
+  font-size: 13px;
+  color: #444c5c;
+  font-weight: 600;
+}
+
+.calendar-empty-note {
+  font-size: 13px;
+  color: #687080;
+  font-weight: 600;
+}
+
+.calendar-view-link {
+  color: #c2410c;
+  font-weight: 800;
+}
+
 .creator-list-table-head {
   position: sticky;
   top: 0;

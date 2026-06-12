@@ -120,7 +120,65 @@ export function extractVisitDateHint(rawText: string, now = new Date()): VisitDa
     if (iso) return withTime({ iso, raw: numeric[0].trim() });
   }
 
+  // [Claude 2026-06-12] Weekday and relative-day mentions: "Sunday 5pm",
+  // "next Friday", "tomorrow", "周日", "明天". Resolved to the next occurrence;
+  // an explicit "next" prefix pushes one more week out.
+  const relative = extractRelativeDay(text, now);
+  if (relative) return withTime(relative);
+
   return null;
+}
+
+const WEEKDAYS: Record<string, number> = {
+  sunday: 0, sun: 0,
+  monday: 1, mon: 1,
+  tuesday: 2, tue: 2, tues: 2,
+  wednesday: 3, wed: 3,
+  thursday: 4, thu: 4, thur: 4, thurs: 4,
+  friday: 5, fri: 5,
+  saturday: 6, sat: 6,
+};
+
+const CHINESE_WEEKDAYS: Record<string, number> = {
+  "日": 0, "天": 0, "一": 1, "二": 2, "三": 3, "四": 4, "五": 5, "六": 6,
+};
+
+function extractRelativeDay(text: string, now: Date): { iso: string; raw: string } | null {
+  const english = text.match(/\b(this|next|coming)?\s*(sunday|monday|tuesday|wednesday|thursday|friday|saturday|sun|mon|tue|tues|wed|thu|thur|thurs|fri|sat)\b/i);
+  if (english) {
+    const target = WEEKDAYS[english[2].toLowerCase()];
+    const isNext = (english[1] || "").toLowerCase() === "next";
+    return { iso: upcomingWeekdayIso(target, now, isNext), raw: english[0].trim() };
+  }
+
+  const chinese = text.match(/(下+)?\s*(?:周|星期|礼拜)([日天一二三四五六])/);
+  if (chinese) {
+    const target = CHINESE_WEEKDAYS[chinese[2]];
+    if (target !== undefined) {
+      return { iso: upcomingWeekdayIso(target, now, Boolean(chinese[1])), raw: chinese[0].trim() };
+    }
+  }
+
+  const relativeDay = text.match(/\b(today|tomorrow)\b/i) || text.match(/(今天|明天|后天)/);
+  if (relativeDay) {
+    const word = relativeDay[1].toLowerCase();
+    const offset = word === "today" || word === "今天" ? 0 : word === "后天" ? 2 : 1;
+    return { iso: addDaysIso(now, offset), raw: relativeDay[0] };
+  }
+
+  return null;
+}
+
+function upcomingWeekdayIso(targetDow: number, now: Date, pushWeek: boolean) {
+  let delta = (targetDow - now.getDay() + 7) % 7;
+  if (delta === 0) delta = 7;
+  if (pushWeek) delta += 7;
+  return addDaysIso(now, delta);
+}
+
+function addDaysIso(now: Date, days: number) {
+  const value = new Date(now.getFullYear(), now.getMonth(), now.getDate() + days);
+  return `${value.getFullYear()}-${String(value.getMonth() + 1).padStart(2, "0")}-${String(value.getDate()).padStart(2, "0")}`;
 }
 
 function buildUpcomingIso(month: number, day: number, now: Date): string | null {
