@@ -9,7 +9,9 @@ import type { OutreachPick, OutreachPicksResult } from "@/lib/outreach-picks";
 
 type ItemState = "idle" | "working" | "approved" | "skipped";
 
-type PreviewState = {
+// [Claude 2026-06-12] Exported so ComposeOutreachButton (email any creator from the
+// creator list) can reuse the same preview modal and state shape.
+export type PreviewState = {
   leadId: string;
   name: string;
   styleNote: string;
@@ -22,6 +24,17 @@ type PreviewState = {
   rewriting: boolean;
   error: string;
 };
+
+export async function generateOutreachPreview(leadId: string, styleNote: string, referencePost: string) {
+  const res = await fetch("/api/outreach-picks", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ action: "preview", leadId, styleNote, referencePost }),
+  });
+  const payload = (await res.json()) as { subject?: string; body?: string; styleNote?: string | null; referencePost?: string | null; error?: unknown };
+  if (!res.ok) throw new Error(typeof payload.error === "string" ? payload.error : "Could not generate preview.");
+  return payload;
+}
 
 export function OutreachPicksPanel() {
   const [data, setData] = useState<OutreachPicksResult | null>(null);
@@ -49,16 +62,7 @@ export function OutreachPicksPanel() {
     };
   }, []);
 
-  async function generatePreview(leadId: string, styleNote: string, referencePost: string) {
-    const res = await fetch("/api/outreach-picks", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "preview", leadId, styleNote, referencePost }),
-    });
-    const payload = (await res.json()) as { subject?: string; body?: string; styleNote?: string | null; referencePost?: string | null; error?: unknown };
-    if (!res.ok) throw new Error(typeof payload.error === "string" ? payload.error : "Could not generate preview.");
-    return payload;
-  }
+  const generatePreview = generateOutreachPreview;
 
   async function openPreview(pick: OutreachPick) {
     setPreview({ leadId: pick.leadId, name: pick.name, styleNote: "", referencePost: "", subject: "", body: "", rewriteNote: "", loading: true, sending: false, rewriting: false, error: "" });
@@ -226,7 +230,7 @@ function OutreachPickCard({ pick, state, onApprove, onSkip }: { pick: OutreachPi
   );
 }
 
-function PreviewModal({ preview, setPreview, onRegenerate, onRewrite, onSend }: { preview: PreviewState; setPreview: (value: PreviewState | null) => void; onRegenerate: () => void; onRewrite: () => void; onSend: () => void }) {
+export function PreviewModal({ preview, setPreview, onRegenerate, onRewrite, onSend }: { preview: PreviewState; setPreview: (value: PreviewState | null) => void; onRegenerate: () => void; onRewrite: () => void; onSend: () => void }) {
   const busy = preview.loading || preview.sending || preview.rewriting;
   return (
     <div className="ops-modal-backdrop" role="presentation" onClick={() => (busy ? null : setPreview(null))}>

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { ApprovalActions, ReopenApprovalButton } from "@/components/approval-actions";
+import { ComposeOutreachButton } from "@/components/compose-outreach-button";
 import { OpsTaskList } from "@/components/ops-task-list";
 import type { OpsApproval, OpsCreatorListRow, OpsMetric, OpsTask } from "@/lib/ops-overview";
 
@@ -137,6 +138,7 @@ function CreatorTable({ activeRows, activeList, activeTitle }: { activeRows: Ops
         <span>Price</span>
         <span>Contact Date</span>
         <span>Avg. views</span>
+        <span>Actions</span>
       </div>
       {activeRows.length ? (
         activeRows.map((creator, index) => (
@@ -149,6 +151,13 @@ function CreatorTable({ activeRows, activeList, activeTitle }: { activeRows: Ops
             <span title={creator.price}>{valueOrMissing(creator.price)}</span>
             <span title={creator.contactDate}>{valueOrMissing(creator.contactDate)}</span>
             <span title={creator.avgViews}>{valueOrMissing(creator.avgViews)}</span>
+            <span>
+              {creator.leadId && creator.email !== "missing" ? (
+                <ComposeOutreachButton leadId={creator.leadId} name={creator.name} />
+              ) : (
+                <span className="compose-outcome suppressed">No email</span>
+              )}
+            </span>
           </div>
         ))
       ) : (
