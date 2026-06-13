@@ -152,3 +152,39 @@ function stringValue(value: unknown): string | null {
 function extractThreadIdFromEmail(email: string) {
   return email.match(/thread\+([^@\s]+)@/i)?.[1] || null;
 }
+
+// [Claude 2026-06-13] Forward inbound emails that don't match any creator thread to
+// the workspace owner's personal inbox (OWNER_FORWARD_EMAIL env var). This makes
+// mike@makocreators.com work as a real email address — direct messages, verification
+// emails, etc. — without a paid email hosting plan.
+export async function forwardEmailToOwner(inbound: InboundEmailPayload): Promise<void> {
+  const forwardTo = process.env.OWNER_FORWARD_EMAIL;
+  const apiKey = process.env.RESEND_API_KEY;
+  const from = process.env.RESEND_FROM_EMAIL;
+  if (!forwardTo || !apiKey || !from) {
+    console.warn("forwardEmailToOwner: OWNER_FORWARD_EMAIL, RESEND_API_KEY, or RESEND_FROM_EMAIL not set — skipping forward.");
+    return;
+  }
+
+  const subject = inbound.subject ? `Fwd: ${inbound.subject}` : "Forwarded email (no subject)";
+  const originalFrom = inbound.fromEmail || "unknown sender";
+  const originalTo = inbound.toEmail || "unknown recipient";
+  const body = [
+    `---------- Forwarded message ----------`,
+    `From: ${originalFrom}`,
+    `To: ${originalTo}`,
+    inbound.subject ? `Subject: ${inbound.subject}` : "",
+    "",
+    inbound.textBody || "(no text body)",
+  ].filter(line => line !== null).join("\n");
+
+  const res = await fetch("https://api.resend.com/emails", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+    body: JSON.stringify({ from, to: forwardTo, subject, text: body }),
+  });
+
+  if (!res.ok) {
+    console.error("forwardEmailToOwner: Resend API error", res.status, (await res.text().catch(() => "")).slice(0, 200));
+  }
+}
