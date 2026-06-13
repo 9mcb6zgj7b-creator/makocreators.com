@@ -48,7 +48,11 @@ export function CreatorImportForm({ databaseConfigured }: { databaseConfigured: 
       const res = await fetch("/api/creator-leads", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ urls: contacts.urls, emails: contacts.emails, notes: notes || undefined }),
+        body: JSON.stringify({
+            ...(contacts.urls.length ? { urls: contacts.urls } : {}),
+            ...(contacts.emails.length ? { emails: contacts.emails } : {}),
+            notes: notes || undefined,
+          }),
       });
       const data = (await res.json()) as LinkImportResponse & ApiErrorResponse;
       if (!res.ok) throw new Error(formatApiError(data.error) || "Creator contacts could not be imported.");
