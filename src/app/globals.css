@@ -2364,104 +2364,129 @@ h2 {
   color: #8a8f99;
 }
 
-.calendar-nav {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  font-size: 15px;
-}
-
-.calendar-nav-button {
-  border: 1px solid #e8e3da;
-  background: #fff;
-  border-radius: 9px;
-  padding: 6px 12px;
-  text-decoration: none;
-  color: #1f2733;
-  font-weight: 800;
-}
-
-.calendar-grid {
+.inbox-thread-layout {
   display: grid;
-  grid-template-columns: repeat(7, 1fr);
-  gap: 6px;
-  background: #fff;
-  border: 1px solid #e8e3da;
-  border-radius: 16px;
-  padding: 14px;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  gap: 22px;
+  align-items: start;
 }
 
-.calendar-grid-head {
+@media (max-width: 1080px) {
+  .inbox-thread-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+.inbox-thread-main {
+  min-width: 0;
+}
+
+.visit-panel {
+  position: sticky;
+  top: 96px;
+  border: 1px solid #e8e3da;
+  background: #fff;
+  border-radius: 16px;
+  padding: 16px 18px;
+}
+
+.visit-panel h3 {
+  margin: 0 0 10px;
+  font-size: 15px;
+  letter-spacing: -0.01em;
+}
+
+.visit-panel-eyebrow {
+  margin: 0 0 6px;
   font-size: 11px;
   font-weight: 800;
   text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: #8a8f99;
-  padding: 4px 6px;
+  letter-spacing: 0.05em;
+  color: #c2410c;
 }
 
-.calendar-cell {
-  min-height: 92px;
-  border: 1px solid #f1ede6;
-  border-radius: 10px;
-  padding: 6px;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.calendar-cell.empty {
-  border-color: transparent;
-  background: transparent;
-}
-
-.calendar-cell.today {
-  border-color: #fed7aa;
-  background: #fffaf5;
-}
-
-.calendar-day-number {
+.visit-panel-hint {
+  margin: 0 0 12px;
   font-size: 12px;
-  font-weight: 800;
-  color: #8a8f99;
-}
-
-.calendar-cell.today .calendar-day-number {
-  color: #c2410c;
-}
-
-.calendar-event {
-  display: flex;
-  flex-direction: column;
-  background: #fff7ed;
-  border: 1px solid #fed7aa;
-  border-radius: 8px;
-  padding: 4px 7px;
-  text-decoration: none;
-  color: #1f2733;
-}
-
-.calendar-event strong {
-  font-size: 11px;
-  color: #c2410c;
-}
-
-.calendar-event span {
-  font-size: 11px;
-  color: #687080;
+  line-height: 1.6;
+  color: #444c5c;
   font-weight: 600;
 }
 
-.calendar-upcoming {
-  margin-top: 22px;
+.visit-panel-hint.muted {
+  color: #8a8f99;
 }
 
-.calendar-upcoming h2 {
-  font-size: 17px;
-  margin: 0 0 10px;
+.visit-panel-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 10px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #687080;
 }
 
-.calendar-upcoming ul {
+.visit-panel-field input {
+  border: 1px solid #e8e3da;
+  border-radius: 9px;
+  padding: 8px 10px;
+  font-size: 13px;
+  font-family: inherit;
+  background: #fff;
+}
+
+.visit-panel-google {
+  display: block;
+  text-align: center;
+  border-radius: 9px;
+  background: var(--accent, #f97316);
+  color: #fff;
+  padding: 10px 14px;
+  font-size: 13px;
+  font-weight: 800;
+  text-decoration: none;
+  margin-top: 4px;
+}
+
+.visit-panel-google.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.visit-panel-email {
+  display: block;
+  width: 100%;
+  margin-top: 8px;
+  border: 1px solid #fed7aa;
+  background: #fff7ed;
+  color: #c2410c;
+  border-radius: 9px;
+  padding: 9px 14px;
+  font-size: 12px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.visit-panel-email:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.visit-panel-success {
+  margin: 10px 0 0;
+  font-size: 12px;
+  font-weight: 700;
+  color: #047857;
+}
+
+.visit-panel-history {
+  margin-top: 18px;
+  border-top: 1px solid #efece6;
+  padding-top: 14px;
+}
+
+.visit-panel-history ul {
   list-style: none;
   margin: 0;
   padding: 0;
@@ -2470,39 +2495,19 @@ h2 {
   gap: 8px;
 }
 
-.calendar-upcoming li a {
+.visit-panel-history li {
   display: flex;
-  gap: 14px;
-  align-items: baseline;
-  border: 1px solid #e8e3da;
-  background: #fff;
-  border-radius: 12px;
-  padding: 10px 16px;
-  text-decoration: none;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 12px;
+  font-weight: 700;
   color: #1f2733;
 }
 
-.calendar-upcoming li a strong {
-  font-size: 13px;
+.visit-panel-history li a {
   color: #c2410c;
-  white-space: nowrap;
-}
-
-.calendar-upcoming li a span {
-  font-size: 13px;
-  color: #444c5c;
-  font-weight: 600;
-}
-
-.calendar-empty-note {
-  font-size: 13px;
-  color: #687080;
-  font-weight: 600;
-}
-
-.calendar-view-link {
-  color: #c2410c;
-  font-weight: 800;
+  font-size: 12px;
+  font-weight: 700;
 }
 
 .creator-list-table-head {

@@ -6,7 +6,6 @@ import {
   buildFollowUpCopy,
   buildThreadReplyTo,
   buildUnsubscribeUrl,
-  buildVisitApprovedMessage,
   sendConversationEmail,
 } from "@/lib/conversation-email";
 import { classifyCreatorReply, type CreatorReplyClassification } from "@/lib/conversation-classifier";
@@ -526,38 +525,21 @@ async function sendApprovedAssets(thread: ConversationThread) {
   return { threadId: thread.id, action: "assets_sent" };
 }
 
+// [Claude 2026-06-13] Visit confirmation email to creator removed per product decision:
+// the calendar invite (sent separately from Inbox) already signals confirmed intent.
+// This function now only advances the thread state — no outbound email to the creator.
 async function markVisitApproved(thread: ConversationThread, selectedTime: string | null) {
   const metadata = getThreadMetadata(thread.metadata);
-  const creatorName = metadata.creatorName || thread.creatorEmail?.split("@")[0] || "there";
-  const brandName = metadata.brandName || "Mako Creator";
-  const copy = buildVisitApprovedMessage({ creatorName, brandName, selectedTime, threadId: thread.id });
-  const email = await sendConversationEmail({ thread, to: thread.creatorEmail!, subject: copy.subject, text: copy.text });
-
-  await prisma.$transaction([
-    prisma.conversationMessage.create({
-      data: {
-        threadId: thread.id,
-        direction: "OUTBOUND",
-        provider: email.provider,
-        providerMessageId: email.providerMessageId,
-        fromEmail: process.env.RESEND_FROM_EMAIL,
-        toEmail: thread.creatorEmail,
-        subject: copy.subject,
-        textBody: copy.text,
-        metadata: { automation: "approved-visit", selectedTime, calendarActionRequired: true },
-      },
-    }),
-    prisma.conversationThread.update({
-      where: { id: thread.id },
-      data: {
-        state: "VISIT_SCHEDULED",
-        lastMessageAt: new Date(),
-        nextActionAt: null,
-        metadata: { ...metadata, selectedTime, calendarActionRequired: true } as Prisma.InputJsonValue,
-      },
-    }),
-  ]);
-  return { threadId: thread.id, action: "visit_confirmed", calendarActionRequired: true };
+  await prisma.conversationThread.update({
+    where: { id: thread.id },
+    data: {
+      state: "VISIT_SCHEDULED",
+      lastMessageAt: new Date(),
+      nextActionAt: null,
+      metadata: { ...metadata, selectedTime, calendarActionRequired: false } as Prisma.InputJsonValue,
+    },
+  });
+  return { threadId: thread.id, action: "visit_confirmed" };
 }
 
 async function moveThreadToHuman(thread: ConversationThread, reason: string, extraData: Partial<{ lastIntent: string; lastConfidence: number; nextActionAt: null; lastMessageAt: Date }> = {}) {
