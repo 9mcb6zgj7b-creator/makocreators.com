@@ -122,7 +122,7 @@ export function CreatorImportForm({ databaseConfigured }: { databaseConfigured: 
             <span>Creator emails or links</span>
             <textarea
               rows={9}
-              placeholder="creator@example.com&#10;https://www.instagram.com/example&#10;https://www.tiktok.com/@example"
+              placeholder="creator@example.com&#10;https://www.tiktok.com/@example&#10;https://www.instagram.com/example creator@example.com"
               value={links}
               onChange={event => setLinks(event.target.value)}
             />
@@ -181,15 +181,27 @@ export function CreatorImportForm({ databaseConfigured }: { databaseConfigured: 
   );
 }
 
+// [Claude 2026-06-13] Parse by line so spaces inside a line (e.g. "Name email@x.com")
+// don't create extra records. Each line can contain a URL and/or an email in any order;
+// plain words (names, notes) are silently ignored instead of being saved as bogus URLs.
 function parseCreatorContacts(value: string) {
-  const items = value
-    .split(/[\n,\s]+/)
-    .map(item => item.trim())
-    .filter(Boolean);
+  const EMAIL_RE = /[^\s@,]+@[^\s@,]+\.[^\s@,]+/gi;
+  const URL_RE = /https?:\/\/[^\s,]+/gi;
 
-  const emails = Array.from(new Set(items.filter(item => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(item.toLowerCase())).map(item => item.toLowerCase())));
-  const urls = Array.from(new Set(items.filter(item => !emails.includes(item.toLowerCase()))));
+  const allEmails = new Set<string>();
+  const allUrls = new Set<string>();
 
+  const lines = value.split(/[\n,]+/).map(line => line.trim()).filter(Boolean);
+  for (const line of lines) {
+    const emailMatches = line.match(EMAIL_RE);
+    const urlMatches = line.match(URL_RE);
+    for (const e of emailMatches ?? []) allEmails.add(e.toLowerCase());
+    for (const u of urlMatches ?? []) allUrls.add(u);
+  }
+
+  // Remove URLs that are also emails (e.g. mailto: edge case).
+  const emails = Array.from(allEmails);
+  const urls = Array.from(allUrls).filter(u => !allEmails.has(u.toLowerCase()));
   return { emails, urls };
 }
 
