@@ -115,14 +115,14 @@ export function CreatorImportForm({ databaseConfigured }: { databaseConfigured: 
           <div>
             <span className="section-eyebrow">Direct contacts</span>
             <h2>Paste creator emails or profile links</h2>
-            <p>Email is best for the MVP. Profile links can still be saved as leads while the team finds contact details.</p>
+            <p>One creator per line. Put the profile link and email on the same line — a new line means a new creator.</p>
           </div>
 
           <label>
             <span>Creator emails or links</span>
             <textarea
               rows={9}
-              placeholder="creator@example.com&#10;https://www.tiktok.com/@example&#10;https://www.instagram.com/example creator@example.com"
+              placeholder="https://www.tiktok.com/@example creator@example.com&#10;https://www.instagram.com/example&#10;creator@example.com"
               value={links}
               onChange={event => setLinks(event.target.value)}
             />
