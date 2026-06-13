@@ -1,8 +1,8 @@
-// [Claude 2026-06-11] Send a calendar invite for a creator visit to the signed-in
-// user's own email. The invite goes only to the user (not the creator), so no
-// approver role is required. An internal note is recorded on the thread.
+// [Claude 2026-06-11] Send a calendar invite for a creator visit.
 // [Claude 2026-06-13] Auto-approves any pending SCHEDULE_VISIT approval for this
 // thread so the Ops approval card is resolved without a manual click.
+// [Claude 2026-06-13] Sends .ics to BOTH the signed-in user AND the creator so
+// both parties receive the calendar event.
 import { NextRequest } from "next/server";
 import { z } from "zod";
 import { UserFacingError, apiError, notFound, ok } from "@/lib/api";
@@ -48,6 +48,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       `Thread: ${siteUrl}/inbox/${thread.id}`,
     ].join("\n");
 
+    // Send to the user first (required), then to the creator if they have an email.
     const result = await sendCalendarInviteEmail({
       toEmail: destEmail,
       toName: user.name || destEmail,
@@ -57,6 +58,19 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       durationMinutes: body.durationMinutes,
       description,
     });
+
+    // Also send to the creator so they have the event on their calendar.
+    if (thread.creatorEmail && thread.creatorEmail !== destEmail) {
+      await sendCalendarInviteEmail({
+        toEmail: thread.creatorEmail,
+        toName: creatorName,
+        title,
+        date: body.date,
+        time: body.time ?? null,
+        durationMinutes: body.durationMinutes,
+        description,
+      });
+    }
 
     const dateLabel = body.time ? `${body.date} ${body.time}` : body.date;
 
@@ -78,8 +92,8 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
           threadId: thread.id,
           direction: "INTERNAL",
           subject: "Calendar invite sent",
-          textBody: `Calendar invite "${title}" (${dateLabel}) was emailed to ${destEmail}.`,
-          metadata: { automation: "calendar-invite", date: body.date, time: body.time ?? null, sentTo: destEmail },
+          textBody: `Calendar invite "${title}" (${dateLabel}) was emailed to ${destEmail}${thread.creatorEmail && thread.creatorEmail !== destEmail ? ` and ${thread.creatorEmail}` : ""}.`,
+          metadata: { automation: "calendar-invite", date: body.date, time: body.time ?? null, sentTo: destEmail, sentToCreator: thread.creatorEmail ?? null },
         },
       }),
       ...(pendingApproval
