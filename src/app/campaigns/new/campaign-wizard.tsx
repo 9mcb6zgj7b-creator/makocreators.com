@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 
 const majorSteps = [
   { label: "Create Campaign", state: "done" },
@@ -68,12 +69,48 @@ export function CampaignWizard() {
   const [campaignName, setCampaignName] = useState("Los Angeles Restaurant Review Influencer Campaign");
   const [goal, setGoal] = useState("Increase brand exposure and attract customers for Los Angeles restaurants");
   const [productName, setProductName] = useState("Los Angeles Restaurant Review Influencer Campaign");
+  const [deliverables, setDeliverables] = useState("");
+  const [talkingPoints, setTalkingPoints] = useState("");
+  const [referenceLinks, setReferenceLinks] = useState("");
+  const [doNotMention, setDoNotMention] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState("");
+  const router = useRouter();
   const progress = useMemo(() => `${activeStep + 1} / ${contentSteps.length}`, [activeStep]);
   const current = contentSteps[activeStep];
   const resolvedBusinessType = businessType === "Others" ? customBusinessType.trim() : businessType;
 
-  function goNext() {
-    setActiveStep(step => Math.min(step + 1, contentSteps.length - 1));
+  async function goNext() {
+    if (activeStep < contentSteps.length - 1) {
+      setActiveStep(step => step + 1);
+      return;
+    }
+    // Last step — save campaign and go to campaigns list.
+    setSaving(true);
+    setSaveError("");
+    try {
+      const objective = [
+        goal,
+        deliverables ? `Deliverables: ${deliverables}` : "",
+        talkingPoints ? `Talking points: ${talkingPoints}` : "",
+        referenceLinks ? `Reference links: ${referenceLinks}` : "",
+        doNotMention ? `Do not mention: ${doNotMention}` : "",
+      ].filter(Boolean).join("\n\n");
+
+      const res = await fetch("/api/campaigns", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: campaignName, objective }),
+      });
+      if (!res.ok) {
+        const data = (await res.json().catch(() => ({}))) as { error?: string };
+        throw new Error(typeof data.error === "string" ? data.error : "Failed to save campaign.");
+      }
+      router.push("/campaigns");
+    } catch (err) {
+      setSaveError(err instanceof Error ? err.message : "Failed to save campaign.");
+      setSaving(false);
+    }
   }
 
   function goBack() {
@@ -346,17 +383,29 @@ export function CampaignWizard() {
               <CampaignInfoStep campaignName={campaignName} goal={goal} onCampaignName={setCampaignName} onGoal={setGoal} />
             ) : null}
             {activeStep === 1 ? <ProductInfoStep productName={productName} onProductName={setProductName} /> : null}
-            {activeStep === 2 ? <ContentRequirementsStep /> : null}
+            {activeStep === 2 ? (
+              <ContentRequirementsStep
+                deliverables={deliverables}
+                talkingPoints={talkingPoints}
+                referenceLinks={referenceLinks}
+                doNotMention={doNotMention}
+                onDeliverables={setDeliverables}
+                onTalkingPoints={setTalkingPoints}
+                onReferenceLinks={setReferenceLinks}
+                onDoNotMention={setDoNotMention}
+              />
+            ) : null}
           </div>
         </section>
       </section>
 
       <footer className="wizard-footer">
-        <button type="button" onClick={goBack}>
+        <button type="button" onClick={goBack} disabled={saving}>
           Back
         </button>
-        <button type="button" onClick={goNext}>
-          {activeStep === contentSteps.length - 1 ? "Ready for Budget" : "Next"}
+        {saveError ? <p className="form-error">{saveError}</p> : null}
+        <button type="button" onClick={goNext} disabled={saving}>
+          {saving ? "Saving…" : activeStep === contentSteps.length - 1 ? "Ready for Budget" : "Next"}
         </button>
       </footer>
     </main>
@@ -417,24 +466,31 @@ function ProductInfoStep({ productName, onProductName }: { productName: string; 
   );
 }
 
-function ContentRequirementsStep() {
+function ContentRequirementsStep({
+  deliverables, talkingPoints, referenceLinks, doNotMention,
+  onDeliverables, onTalkingPoints, onReferenceLinks, onDoNotMention,
+}: {
+  deliverables: string; talkingPoints: string; referenceLinks: string; doNotMention: string;
+  onDeliverables: (v: string) => void; onTalkingPoints: (v: string) => void;
+  onReferenceLinks: (v: string) => void; onDoNotMention: (v: string) => void;
+}) {
   return (
     <div className="requirement-grid">
       <label className="wizard-field">
         <span>Required Deliverables</span>
-        <textarea rows={4} placeholder="Example: 1 TikTok video, 1 Instagram Reel, 3 story frames..." />
+        <textarea rows={4} placeholder="Example: 1 TikTok video, 1 Instagram Reel, 3 story frames..." value={deliverables} onChange={e => onDeliverables(e.target.value)} />
       </label>
       <label className="wizard-field">
         <span>Talking Points</span>
-        <textarea rows={4} placeholder="Example: location, signature dishes, special offer, booking link..." />
+        <textarea rows={4} placeholder="Example: location, signature dishes, special offer, booking link..." value={talkingPoints} onChange={e => onTalkingPoints(e.target.value)} />
       </label>
       <label className="wizard-field">
         <span>Reference Links</span>
-        <textarea rows={4} placeholder="Paste creator examples, competitor videos, moodboard links, or product pages..." />
+        <textarea rows={4} placeholder="Paste creator examples, competitor videos, moodboard links, or product pages..." value={referenceLinks} onChange={e => onReferenceLinks(e.target.value)} />
       </label>
       <label className="wizard-field">
         <span>Do Not Mention</span>
-        <textarea rows={4} placeholder="Competitors, expired promos, restricted claims, or sensitive topics..." />
+        <textarea rows={4} placeholder="Competitors, expired promos, restricted claims, or sensitive topics..." value={doNotMention} onChange={e => onDoNotMention(e.target.value)} />
       </label>
     </div>
   );
