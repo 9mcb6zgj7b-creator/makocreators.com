@@ -4,16 +4,20 @@
 // preview-before-send step. Approve opens a preview: the human adds a style note
 // ("what I liked about their content"), the opener is generated anchored on it, and
 // only after a look/edit does the first email actually send. Skip snoozes the creator.
+// [Claude 2026-06-16] PreviewModal now includes a campaign picker so every outreach
+// thread is tied to a specific campaign from the moment it's created.
 import { useEffect, useState } from "react";
 import type { OutreachPick, OutreachPicksResult } from "@/lib/outreach-picks";
 
 type ItemState = "idle" | "working" | "approved" | "skipped";
+type Campaign = { id: string; name: string };
 
 // [Claude 2026-06-12] Exported so ComposeOutreachButton (email any creator from the
 // creator list) can reuse the same preview modal and state shape.
 export type PreviewState = {
   leadId: string;
   name: string;
+  campaignId: string;
   styleNote: string;
   referencePost: string;
   subject: string;
@@ -25,11 +29,11 @@ export type PreviewState = {
   error: string;
 };
 
-export async function generateOutreachPreview(leadId: string, styleNote: string, referencePost: string) {
+export async function generateOutreachPreview(leadId: string, styleNote: string, referencePost: string, campaignId?: string) {
   const res = await fetch("/api/outreach-picks", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ action: "preview", leadId, styleNote, referencePost }),
+    body: JSON.stringify({ action: "preview", leadId, styleNote, referencePost, campaignId: campaignId || undefined }),
   });
   const payload = (await res.json()) as { subject?: string; body?: string; styleNote?: string | null; referencePost?: string | null; error?: unknown };
   if (!res.ok) throw new Error(typeof payload.error === "string" ? payload.error : "Could not generate preview.");
@@ -38,6 +42,7 @@ export async function generateOutreachPreview(leadId: string, styleNote: string,
 
 export function OutreachPicksPanel() {
   const [data, setData] = useState<OutreachPicksResult | null>(null);
+  const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [itemState, setItemState] = useState<Record<string, ItemState>>({});
@@ -45,29 +50,27 @@ export function OutreachPicksPanel() {
 
   useEffect(() => {
     let active = true;
-    (async () => {
-      try {
-        const res = await fetch("/api/outreach-picks");
-        const payload = (await res.json()) as OutreachPicksResult & { error?: unknown };
-        if (!res.ok) throw new Error(typeof payload.error === "string" ? payload.error : "Could not load outreach picks.");
-        if (active) setData(payload);
-      } catch (caught) {
-        if (active) setError(caught instanceof Error ? caught.message : "Could not load outreach picks.");
-      } finally {
-        if (active) setLoading(false);
-      }
-    })();
-    return () => {
-      active = false;
-    };
+    Promise.all([
+      fetch("/api/outreach-picks").then(r => r.json()) as Promise<OutreachPicksResult & { error?: unknown }>,
+      fetch("/api/campaigns").then(r => r.json()) as Promise<{ campaigns?: Campaign[]; error?: unknown }>,
+    ]).then(([picks, camps]) => {
+      if (!active) return;
+      if (picks.error) { setError(typeof picks.error === "string" ? picks.error : "Could not load outreach picks."); }
+      else setData(picks);
+      setCampaigns(camps.campaigns ?? []);
+    }).catch(caught => {
+      if (active) setError(caught instanceof Error ? caught.message : "Could not load outreach picks.");
+    }).finally(() => {
+      if (active) setLoading(false);
+    });
+    return () => { active = false; };
   }, []);
 
-  const generatePreview = generateOutreachPreview;
-
   async function openPreview(pick: OutreachPick) {
-    setPreview({ leadId: pick.leadId, name: pick.name, styleNote: "", referencePost: "", subject: "", body: "", rewriteNote: "", loading: true, sending: false, rewriting: false, error: "" });
+    const defaultCampaignId = campaigns[0]?.id ?? "";
+    setPreview({ leadId: pick.leadId, name: pick.name, campaignId: defaultCampaignId, styleNote: "", referencePost: "", subject: "", body: "", rewriteNote: "", loading: true, sending: false, rewriting: false, error: "" });
     try {
-      const r = await generatePreview(pick.leadId, "", "");
+      const r = await generateOutreachPreview(pick.leadId, "", "", defaultCampaignId || undefined);
       setPreview(prev => (prev ? { ...prev, subject: r.subject ?? "", body: r.body ?? "", styleNote: r.styleNote ?? "", referencePost: r.referencePost ?? "", loading: false } : prev));
     } catch (caught) {
       setPreview(prev => (prev ? { ...prev, loading: false, error: caught instanceof Error ? caught.message : "Preview failed." } : prev));
@@ -78,7 +81,7 @@ export function OutreachPicksPanel() {
     if (!preview) return;
     setPreview({ ...preview, loading: true, error: "" });
     try {
-      const r = await generatePreview(preview.leadId, preview.styleNote, preview.referencePost);
+      const r = await generateOutreachPreview(preview.leadId, preview.styleNote, preview.referencePost, preview.campaignId || undefined);
       setPreview(prev => (prev ? { ...prev, subject: r.subject ?? prev.subject, body: r.body ?? prev.body, loading: false } : prev));
     } catch (caught) {
       setPreview(prev => (prev ? { ...prev, loading: false, error: caught instanceof Error ? caught.message : "Preview failed." } : prev));
@@ -97,6 +100,7 @@ export function OutreachPicksPanel() {
         body: JSON.stringify({
           action: "rewrite",
           leadId: preview.leadId,
+          campaignId: preview.campaignId || undefined,
           subject: preview.subject,
           body: preview.body,
           styleNote: preview.styleNote,
@@ -119,7 +123,7 @@ export function OutreachPicksPanel() {
       const res = await fetch("/api/outreach-picks", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "approve", leadId: preview.leadId, subject: preview.subject, body: preview.body, styleNote: preview.styleNote, referencePost: preview.referencePost }),
+        body: JSON.stringify({ action: "approve", leadId: preview.leadId, campaignId: preview.campaignId || undefined, subject: preview.subject, body: preview.body, styleNote: preview.styleNote, referencePost: preview.referencePost }),
       });
       if (!res.ok) {
         const payload = (await res.json().catch(() => ({}))) as { error?: unknown };
@@ -180,7 +184,7 @@ export function OutreachPicksPanel() {
         )
       ) : null}
 
-      {preview ? <PreviewModal preview={preview} setPreview={setPreview} onRegenerate={regenerate} onRewrite={rewrite} onSend={send} /> : null}
+      {preview ? <PreviewModal preview={preview} setPreview={setPreview} campaigns={campaigns} onRegenerate={regenerate} onRewrite={rewrite} onSend={send} /> : null}
     </section>
   );
 }
@@ -230,7 +234,7 @@ function OutreachPickCard({ pick, state, onApprove, onSkip }: { pick: OutreachPi
   );
 }
 
-export function PreviewModal({ preview, setPreview, onRegenerate, onRewrite, onSend }: { preview: PreviewState; setPreview: (value: PreviewState | null) => void; onRegenerate: () => void; onRewrite: () => void; onSend: () => void }) {
+export function PreviewModal({ preview, setPreview, campaigns = [], onRegenerate, onRewrite, onSend }: { preview: PreviewState; setPreview: (value: PreviewState | null) => void; campaigns?: Campaign[]; onRegenerate: () => void; onRewrite: () => void; onSend: () => void }) {
   const busy = preview.loading || preview.sending || preview.rewriting;
   return (
     <div className="ops-modal-backdrop" role="presentation" onClick={() => (busy ? null : setPreview(null))}>
@@ -245,6 +249,22 @@ export function PreviewModal({ preview, setPreview, onRegenerate, onRewrite, onS
         </div>
 
         <div className="outreach-preview-body">
+        {campaigns.length > 0 ? (
+          <label className="outreach-preview-field">
+            <span>Campaign</span>
+            <select
+              value={preview.campaignId}
+              disabled={busy}
+              onChange={event => setPreview({ ...preview, campaignId: event.target.value })}
+            >
+              <option value="">— No campaign —</option>
+              {campaigns.map(c => (
+                <option key={c.id} value={c.id}>{c.name}</option>
+              ))}
+            </select>
+          </label>
+        ) : null}
+
         <label className="outreach-preview-field">
           <span>Style note (what you liked)</span>
           <textarea rows={2} value={preview.styleNote} disabled={busy} placeholder="e.g. their fast-paced taco reviews around East LA" onChange={event => setPreview({ ...preview, styleNote: event.target.value })} />

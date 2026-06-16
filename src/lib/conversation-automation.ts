@@ -15,6 +15,7 @@ type StartAutomationInput = {
   creatorLeadIds?: string[];
   maxThreads?: number;
   firstMessage?: OutreachCopy; // [Claude 2026-06-10] human-previewed copy to send as the first touch
+  campaignId?: string; // [Claude 2026-06-16] which campaign this outreach belongs to
 };
 
 type ThreadMetadata = {
@@ -115,6 +116,7 @@ export async function startCreatorOutreachAutomation(workspaceId: string, userId
         workspaceId,
         creatorLeadId: lead.id,
         outreachDraftId: draft.id,
+        campaignId: input.campaignId ?? null,
         state: "READY_TO_SEND",
         subject: draft.subject,
         creatorEmail: lead.contactEmail,

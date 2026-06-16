@@ -36,7 +36,7 @@ export type OutreachContext = {
 
 export const SIGNAL_METADATA_KEY = "signal";
 
-export async function getCreatorOutreachContext(workspaceId: string, leadId: string | null): Promise<OutreachContext | null> {
+export async function getCreatorOutreachContext(workspaceId: string, leadId: string | null, campaignId?: string | null): Promise<OutreachContext | null> {
   if (!leadId) return null;
   const lead = await prisma.creatorLead.findFirst({
     where: { id: leadId, workspaceId },
@@ -56,7 +56,9 @@ export async function getCreatorOutreachContext(workspaceId: string, leadId: str
   const signal = readSignal(lead.metadata);
   const brandName = await getWorkspaceBrandName(workspaceId);
   const business = await getBrandBusiness(workspaceId);
-  const campaignBrief = await getLatestCampaignBrief(workspaceId);
+  // [Claude 2026-06-16] Use the specific campaign's brief when campaignId is provided;
+  // fall back to the latest campaign only if no campaign is selected.
+  const campaignBrief = await getLatestCampaignBrief(workspaceId, campaignId ?? undefined);
 
   return {
     leadId: lead.id,
@@ -275,10 +277,12 @@ async function getBrandBusiness(workspaceId: string): Promise<string | null> {
   return persona?.business?.slice(0, 200) ?? null;
 }
 
-async function getLatestCampaignBrief(workspaceId: string): Promise<CampaignBrief | null> {
+async function getLatestCampaignBrief(workspaceId: string, campaignId?: string): Promise<CampaignBrief | null> {
   const campaign = await prisma.campaign.findFirst({
-    where: { workspaceId, status: { in: ["DRAFT", "ACTIVE"] } },
-    orderBy: { createdAt: "desc" },
+    where: campaignId
+      ? { id: campaignId, workspaceId }
+      : { workspaceId, status: { in: ["DRAFT", "ACTIVE"] } },
+    orderBy: campaignId ? undefined : { createdAt: "desc" },
     select: { metadata: true },
   });
   if (!campaign) return null;

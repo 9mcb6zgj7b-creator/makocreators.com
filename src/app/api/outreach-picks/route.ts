@@ -19,6 +19,7 @@ const SKIP_SNOOZE_DAYS = 30;
 const actionSchema = z.object({
   action: z.enum(["preview", "approve", "skip", "rewrite"]),
   leadId: z.string().min(1),
+  campaignId: z.string().optional(), // [Claude 2026-06-16] which campaign this outreach is for
   subject: z.string().max(200).optional(),
   body: z.string().max(6000).optional(),
   styleNote: z.string().max(2000).optional(),
@@ -42,7 +43,7 @@ export async function POST(req: NextRequest) {
     const body = actionSchema.parse(await req.json());
 
     if (body.action === "preview") {
-      const context = await getCreatorOutreachContext(workspace.id, body.leadId);
+      const context = await getCreatorOutreachContext(workspace.id, body.leadId, body.campaignId);
       if (!context) return notFound("Creator not found in this workspace.");
       // Let the human's just-typed note drive the preview before it's saved.
       if (body.styleNote !== undefined) context.styleNote = body.styleNote.trim() || null;
@@ -54,7 +55,7 @@ export async function POST(req: NextRequest) {
     // [Claude 2026-06-10] AI rewrite: take the human's instruction + current draft and
     // return a rewritten subject/body. Nothing is sent or saved here — preview only.
     if (body.action === "rewrite") {
-      const context = await getCreatorOutreachContext(workspace.id, body.leadId);
+      const context = await getCreatorOutreachContext(workspace.id, body.leadId, body.campaignId);
       if (!context) return notFound("Creator not found in this workspace.");
       if (body.styleNote !== undefined) context.styleNote = body.styleNote.trim() || null;
       if (body.referencePost !== undefined) context.referencePost = body.referencePost.trim() || null;
@@ -70,7 +71,7 @@ export async function POST(req: NextRequest) {
       requireApproverRole(role);
       await saveCreatorSignal(workspace.id, body.leadId, body.styleNote, body.referencePost);
       const firstMessage = body.subject && body.body ? { subject: body.subject, body: body.body } : undefined;
-      const result = await startCreatorOutreachAutomation(workspace.id, user.id, { creatorLeadIds: [body.leadId], firstMessage });
+      const result = await startCreatorOutreachAutomation(workspace.id, user.id, { creatorLeadIds: [body.leadId], firstMessage, campaignId: body.campaignId });
       return ok({ action: "approve", ...result });
     }
 

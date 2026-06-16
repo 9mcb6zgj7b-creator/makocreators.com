@@ -391,6 +391,7 @@ model ConversationThread {
   creatorLeadId   String?
   outreachDraftId String?
   assignedHumanId String?
+  campaignId      String?
   state           ConversationThreadState @default(DRAFT)
   subject         String?
   creatorEmail    String?
@@ -407,12 +408,14 @@ model ConversationThread {
   creatorLead     CreatorLead?   @relation(fields: [creatorLeadId], references: [id], onDelete: SetNull)
   outreachDraft   OutreachDraft? @relation(fields: [outreachDraftId], references: [id], onDelete: SetNull)
   assignedHuman   User?          @relation("ConversationThreadAssignedHuman", fields: [assignedHumanId], references: [id], onDelete: SetNull)
+  campaign        Campaign?      @relation(fields: [campaignId], references: [id], onDelete: SetNull)
   messages        ConversationMessage[]
 
   @@index([workspaceId, state, nextActionAt])
   @@index([creatorLeadId])
   @@index([assignedHumanId])
   @@index([replyToEmail])
+  @@index([campaignId])
 }
 
 model ConversationMessage {
@@ -476,9 +479,10 @@ model Campaign {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  tasks     DashboardTask[]
-  approvals Approval[]
+  workspace           Workspace            @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  tasks               DashboardTask[]
+  approvals           Approval[]
+  conversationThreads ConversationThread[]
 
   @@index([workspaceId, createdAt])
 }
