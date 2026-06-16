@@ -355,7 +355,7 @@ export function CampaignWizard() {
         <button type="button" onClick={goBack}>
           Back
         </button>
-        <button type="button" onClick={goNext} disabled={activeStep === contentSteps.length - 1}>
+        <button type="button" onClick={goNext}>
           {activeStep === contentSteps.length - 1 ? "Ready for Budget" : "Next"}
         </button>
       </footer>
