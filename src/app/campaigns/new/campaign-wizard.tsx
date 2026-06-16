@@ -100,7 +100,16 @@ export function CampaignWizard() {
       const res = await fetch("/api/campaigns", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: campaignName, objective }),
+        body: JSON.stringify({
+          name: campaignName,
+          objective,
+          brief: {
+            deliverables: deliverables || null,
+            talkingPoints: talkingPoints || null,
+            referenceLinks: referenceLinks || null,
+            doNotMention: doNotMention || null,
+          },
+        }),
       });
       if (!res.ok) {
         const data = (await res.json().catch(() => ({}))) as { error?: string };

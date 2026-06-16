@@ -14,6 +14,13 @@ export type CreatorSignal = {
   referencePost: string | null;
 };
 
+export type CampaignBrief = {
+  deliverables: string | null;
+  talkingPoints: string | null;
+  referenceLinks: string | null;
+  doNotMention: string | null;
+};
+
 export type OutreachContext = {
   leadId: string;
   creatorName: string;
@@ -24,6 +31,7 @@ export type OutreachContext = {
   city: string | null;
   styleNote: string | null;
   referencePost: string | null;
+  campaignBrief: CampaignBrief | null;
 };
 
 export const SIGNAL_METADATA_KEY = "signal";
@@ -48,6 +56,7 @@ export async function getCreatorOutreachContext(workspaceId: string, leadId: str
   const signal = readSignal(lead.metadata);
   const brandName = await getWorkspaceBrandName(workspaceId);
   const business = await getBrandBusiness(workspaceId);
+  const campaignBrief = await getLatestCampaignBrief(workspaceId);
 
   return {
     leadId: lead.id,
@@ -59,6 +68,7 @@ export async function getCreatorOutreachContext(workspaceId: string, leadId: str
     city: lead.city,
     styleNote: signal.styleNote,
     referencePost: signal.referencePost,
+    campaignBrief,
   };
 }
 
@@ -172,6 +182,9 @@ async function generateWithLlm(context: OutreachContext): Promise<OutreachCopy |
             hasStyleNote
               ? "A human-written styleNote (and maybe a referencePost) describes what the brand genuinely liked about this creator. Anchor the opening sentence on it, specifically and naturally."
               : "There is NO styleNote. Do NOT pretend you watched their content. Open honestly on their niche/categories and city instead.",
+            "If campaignTalkingPoints is provided, naturally weave the key points into the email body (e.g. a World Cup promotion, free beer, a special offer). Keep it genuine, not a list.",
+            "If campaignDeliverables is provided, briefly mention what kind of content collaboration you have in mind.",
+            "If campaignDoNotMention is provided, never reference those topics.",
             "Do not promise payment, usage rights, exclusivity, or deadlines. Keep it 4-6 short sentences, plain text, friendly and concrete.",
             "Do NOT include any unsubscribe text or signature placeholders. Return strict JSON: { \"subject\": string, \"body\": string }.",
           ].join(" "),
@@ -187,6 +200,9 @@ async function generateWithLlm(context: OutreachContext): Promise<OutreachCopy |
             city: context.city,
             styleNote: context.styleNote,
             referencePost: context.referencePost,
+            campaignDeliverables: context.campaignBrief?.deliverables ?? null,
+            campaignTalkingPoints: context.campaignBrief?.talkingPoints ?? null,
+            campaignDoNotMention: context.campaignBrief?.doNotMention ?? null,
           }),
         },
       ],
@@ -223,12 +239,21 @@ function templateOutreach(context: OutreachContext): OutreachCopy {
     ? `I came across your work and really liked it — ${context.styleNote.trim().replace(/\.$/, "")}.`
     : `I came across your ${category} content${place} and it's exactly the kind of local audience we're trying to reach.`;
 
+  const briefLines: string[] = [];
+  if (context.campaignBrief?.talkingPoints) {
+    briefLines.push(`For context on what we're promoting: ${context.campaignBrief.talkingPoints.trim()}`);
+  }
+  if (context.campaignBrief?.deliverables) {
+    briefLines.push(`What we have in mind: ${context.campaignBrief.deliverables.trim()}`);
+  }
+
   const body = [
     `Hi ${context.creatorName},`,
     "",
     `I'm reaching out from ${context.brandName}${business}. ${opener}`,
     "",
-    "We're putting together a small creator collaboration and thought you could be a strong fit. If you're open to it, just reply and let me know whether you'd prefer receiving materials to post from, or an in-person visit.",
+    ...(briefLines.length ? [briefLines.join(" "), ""] : []),
+    "If you're open to a collaboration, just reply and let me know — happy to share more details.",
     "",
     "No pressure if it's not a fit — a quick \"no thanks\" is totally fine.",
   ].join("\n");
@@ -247,13 +272,24 @@ async function getBrandBusiness(workspaceId: string): Promise<string | null> {
     orderBy: { createdAt: "desc" },
     select: { business: true },
   });
-  if (persona?.business) return persona.business.slice(0, 200);
+  return persona?.business?.slice(0, 200) ?? null;
+}
+
+async function getLatestCampaignBrief(workspaceId: string): Promise<CampaignBrief | null> {
   const campaign = await prisma.campaign.findFirst({
     where: { workspaceId, status: { in: ["DRAFT", "ACTIVE"] } },
     orderBy: { createdAt: "desc" },
-    select: { objective: true },
+    select: { metadata: true },
   });
-  return campaign?.objective?.slice(0, 200) ?? null;
+  if (!campaign) return null;
+  const meta = asRecord(campaign.metadata);
+  const brief = asRecord(meta.brief);
+  const deliverables = stringOrNull(brief.deliverables);
+  const talkingPoints = stringOrNull(brief.talkingPoints);
+  const referenceLinks = stringOrNull(brief.referenceLinks);
+  const doNotMention = stringOrNull(brief.doNotMention);
+  if (!deliverables && !talkingPoints && !referenceLinks && !doNotMention) return null;
+  return { deliverables, talkingPoints, referenceLinks, doNotMention };
 }
 
 function stringOrNull(value: unknown) {

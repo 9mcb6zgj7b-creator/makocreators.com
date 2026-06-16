@@ -6,9 +6,17 @@ import { prisma } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
 
+const briefSchema = z.object({
+  deliverables: z.string().max(2000).nullable().optional(),
+  talkingPoints: z.string().max(2000).nullable().optional(),
+  referenceLinks: z.string().max(2000).nullable().optional(),
+  doNotMention: z.string().max(2000).nullable().optional(),
+}).optional();
+
 const createCampaignSchema = z.object({
   name: z.string().min(1).max(120),
-  objective: z.string().max(1000).optional(),
+  objective: z.string().max(4000).optional(),
+  brief: briefSchema,
   budgetMin: z.number().int().min(0).optional(),
   budgetMax: z.number().int().min(0).optional(),
   startsAt: z.string().datetime().optional(),
@@ -41,6 +49,7 @@ export async function POST(req: NextRequest) {
         budgetMax: body.budgetMax,
         startsAt: body.startsAt ? new Date(body.startsAt) : undefined,
         endsAt: body.endsAt ? new Date(body.endsAt) : undefined,
+        metadata: body.brief ? { brief: body.brief } : {},
       },
     });
     return created({ campaign });
