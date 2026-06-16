@@ -253,7 +253,7 @@ async function ensureDefaultWorkspace(userId: string, identifier: string) {
   const baseSlug = slugify(identifier);
   return prisma.workspace.create({
     data: {
-      name: "My Creator Workspace",
+      name: "Mako Creators",
       slug: `${baseSlug}-${randomBytes(3).toString("hex")}`,
       members: {
         create: {
