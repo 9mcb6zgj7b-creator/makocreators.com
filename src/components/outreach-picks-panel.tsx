@@ -11,6 +11,19 @@
 import { useEffect, useState } from "react";
 import type { OutreachPick, OutreachPicksResult } from "@/lib/outreach-picks";
 
+function fmtNum(n: number): string {
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
+  if (n >= 1_000) return `${(n / 1_000).toFixed(1)}K`;
+  return String(n);
+}
+
+function fmtPrice(min: number | null, max: number | null): string {
+  if (min != null && max != null) return `$${min.toLocaleString()}–$${max.toLocaleString()}`;
+  if (min != null) return `$${min.toLocaleString()}+`;
+  if (max != null) return `up to $${max.toLocaleString()}`;
+  return "—";
+}
+
 type ItemState = "idle" | "working" | "approved" | "skipped";
 type Campaign = { id: string; name: string };
 
@@ -259,8 +272,19 @@ function OutreachPickCard({ pick, state, onApprove, onSkip }: { pick: OutreachPi
     <article className="outreach-pick-card">
       <div className="outreach-pick-main">
         <div className="ops-card-title-row">
-          <strong>{pick.name}</strong>
+          <div className="outreach-pick-name-row">
+            {pick.profileUrl
+              ? <a className="outreach-pick-name" href={pick.profileUrl} target="_blank" rel="noopener noreferrer">{pick.name}</a>
+              : <strong className="outreach-pick-name">{pick.name}</strong>}
+            {pick.handle ? <span className="outreach-pick-handle">@{pick.handle}</span> : null}
+          </div>
           <span className={`creator-warmth ${pick.warmth}`}>{pick.warmth}</span>
+        </div>
+        <div className="outreach-pick-stats">
+          {pick.followers != null ? <span><span className="outreach-stat-label">Followers</span> {fmtNum(pick.followers)}</span> : null}
+          {pick.avgViews != null ? <span><span className="outreach-stat-label">Avg. views</span> {fmtNum(pick.avgViews)}</span> : null}
+          {(pick.priceMin != null || pick.priceMax != null) ? <span><span className="outreach-stat-label">Price</span> {fmtPrice(pick.priceMin, pick.priceMax)}</span> : null}
+          {pick.email ? <span><span className="outreach-stat-label">Email</span> {pick.email}</span> : null}
         </div>
         <p className="outreach-pick-why">{pick.whyNow}</p>
         <div className="outreach-pick-tags">

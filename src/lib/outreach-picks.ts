@@ -16,8 +16,14 @@ export type OutreachPlay = "seeding" | "ai_collab" | "visit";
 export type OutreachPick = {
   leadId: string;
   name: string;
+  handle: string | null;
+  profileUrl: string | null;
   email: string | null;
   platform: string | null;
+  followers: number | null;
+  avgViews: number | null;
+  priceMin: number | null;
+  priceMax: number | null;
   score: number;
   warmth: CreatorWarmth;
   whyNow: string;
@@ -48,8 +54,11 @@ type LeadRow = {
   platform: string;
   city: string | null;
   categories: string[];
+  profileUrl: string;
   followers: number | null;
   avgViews: number | null;
+  priceMin: number | null;
+  priceMax: number | null;
   status: string;
   createdAt: Date;
   metadata: unknown;
@@ -83,8 +92,11 @@ export async function getOutreachPicks(workspaceId: string): Promise<OutreachPic
         platform: true,
         city: true,
         categories: true,
+        profileUrl: true,
         followers: true,
         avgViews: true,
+        priceMin: true,
+        priceMax: true,
         status: true,
         createdAt: true,
         metadata: true,
@@ -220,13 +232,20 @@ function evaluateGroup(group: CreatorGroup, threads: ThreadRow[], campaignKeywor
   // email — so anchor on the email-bearing lead in the group, not just the directory one.
   const emailLead = group.leads.find(lead => normalizeEmail(lead.contactEmail)) ?? pickRepresentative(group);
 
+  const rep = pickRepresentative(group);
   return {
     kind: "pick",
     pick: {
       leadId: emailLead.id,
       name: groupName(group),
+      handle: rep.handle ?? null,
+      profileUrl: rep.profileUrl ?? null,
       email,
       platform: group.leads.map(lead => lead.platform).find(Boolean) ?? null,
+      followers: maxNumber(group.leads.map(lead => lead.followers)) || null,
+      avgViews: maxNumber(group.leads.map(lead => lead.avgViews)) || null,
+      priceMin: group.leads.map(l => l.priceMin).find(v => v != null) ?? null,
+      priceMax: group.leads.map(l => l.priceMax).find(v => v != null) ?? null,
       score,
       warmth,
       whyNow: buildWhyNow(group, warmth, lastContactedAt, fit, score, now),
