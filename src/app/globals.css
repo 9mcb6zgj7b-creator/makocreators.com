@@ -3679,6 +3679,12 @@ h2 {
   display: none;
 }
 
+.outreach-send-all-bar {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 12px;
+}
+
 .ops-task-list {
   display: flex;
   flex-direction: column;

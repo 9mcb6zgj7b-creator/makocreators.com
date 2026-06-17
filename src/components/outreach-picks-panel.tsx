@@ -216,13 +216,16 @@ export function OutreachPicksPanel() {
               {data.picks.length} to contact · {data.needsContactInfo} need email · {data.excludedCount} held back
             </span>
           ) : null}
-          {pendingCount > 1 ? (
-            <button type="button" className="primary outreach-send-all-btn" onClick={openBulk}>
-              Send all ({pendingCount})
-            </button>
-          ) : null}
         </div>
       </div>
+
+      {pendingCount > 1 ? (
+        <div className="outreach-send-all-bar">
+          <button type="button" className="primary outreach-send-all-btn" onClick={openBulk}>
+            Send all ({pendingCount})
+          </button>
+        </div>
+      ) : null}
 
       {loading ? <p className="creator-drawer-status">Scoring creators…</p> : null}
       {error ? <p className="creator-drawer-error">{error}</p> : null}
