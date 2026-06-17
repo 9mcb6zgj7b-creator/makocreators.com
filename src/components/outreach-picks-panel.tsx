@@ -104,7 +104,14 @@ export function OutreachPicksPanel() {
     setPreview({ leadId: first.leadId, name: first.name, campaignId: defaultCampaignId, styleNote: "", referencePost: "", subject: "", body: "", rewriteNote: "", loading: true, sending: false, rewriting: false, error: "", bulkLeadIds });
     try {
       const r = await generateOutreachPreview(first.leadId, "", "", defaultCampaignId || undefined);
-      setPreview(prev => (prev ? { ...prev, subject: r.subject ?? "", body: r.body ?? "", styleNote: r.styleNote ?? "", referencePost: r.referencePost ?? "", loading: false } : prev));
+      // Auto-replace the first creator's name/handle with {creatorName} so every
+      // recipient gets their own name when bulk_approve does the substitution.
+      const namesToReplace = [first.name, first.handle].filter(Boolean) as string[];
+      const toPlaceholder = (text: string) =>
+        namesToReplace.reduce((t, n) => t.replace(new RegExp(n.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "gi"), "{creatorName}"), text);
+      const subject = toPlaceholder(r.subject ?? "");
+      const body = toPlaceholder(r.body ?? "");
+      setPreview(prev => (prev ? { ...prev, subject, body, styleNote: r.styleNote ?? "", referencePost: r.referencePost ?? "", loading: false } : prev));
     } catch (caught) {
       setPreview(prev => (prev ? { ...prev, loading: false, error: caught instanceof Error ? caught.message : "Preview failed." } : prev));
     }
