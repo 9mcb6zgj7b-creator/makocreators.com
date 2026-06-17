@@ -4,13 +4,25 @@
 // preview-before-send step. Approve opens a preview: the human adds a style note
 // ("what I liked about their content"), the opener is generated anchored on it, and
 // only after a look/edit does the first email actually send. Skip snoozes the creator.
-// [Claude 2026-06-16] PreviewModal now includes a campaign picker so every outreach
-// thread is tied to a specific campaign from the moment it's created.
+// [Claude 2026-06-16] PreviewModal includes campaign picker.
+// [Claude 2026-06-16] "Send All" button opens BulkSendModal — write one template
+// (use {creatorName} as a variable), send to every pick in one action.
 import { useEffect, useState } from "react";
 import type { OutreachPick, OutreachPicksResult } from "@/lib/outreach-picks";
 
 type ItemState = "idle" | "working" | "approved" | "skipped";
 type Campaign = { id: string; name: string };
+
+type BulkState = {
+  campaignId: string;
+  subject: string;
+  body: string;
+  sending: boolean;
+  done: boolean;
+  sent: number;
+  skipped: number;
+  error: string;
+};
 
 // [Claude 2026-06-12] Exported so ComposeOutreachButton (email any creator from the
 // creator list) can reuse the same preview modal and state shape.
@@ -47,6 +59,7 @@ export function OutreachPicksPanel() {
   const [error, setError] = useState("");
   const [itemState, setItemState] = useState<Record<string, ItemState>>({});
   const [preview, setPreview] = useState<PreviewState | null>(null);
+  const [bulk, setBulk] = useState<BulkState | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -77,6 +90,11 @@ export function OutreachPicksPanel() {
     }
   }
 
+  function openBulk() {
+    const defaultCampaignId = campaigns[0]?.id ?? "";
+    setBulk({ campaignId: defaultCampaignId, subject: "", body: "", sending: false, done: false, sent: 0, skipped: 0, error: "" });
+  }
+
   async function regenerate() {
     if (!preview) return;
     setPreview({ ...preview, loading: true, error: "" });
@@ -88,8 +106,6 @@ export function OutreachPicksPanel() {
     }
   }
 
-  // [Claude 2026-06-10] AI rewrite: send the human's instruction + current draft to the
-  // rewrite action and replace subject/body with the result (still editable before send).
   async function rewrite() {
     if (!preview || !preview.rewriteNote.trim()) return;
     setPreview({ ...preview, rewriting: true, error: "" });
@@ -136,6 +152,39 @@ export function OutreachPicksPanel() {
     }
   }
 
+  async function sendBulk() {
+    if (!bulk || !data) return;
+    const pendingLeadIds = data.picks
+      .filter(p => (itemState[p.leadId] ?? "idle") === "idle")
+      .map(p => p.leadId);
+    if (!pendingLeadIds.length) return;
+    setBulk({ ...bulk, sending: true, error: "" });
+    try {
+      const res = await fetch("/api/outreach-picks", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "bulk_approve",
+          campaignId: bulk.campaignId || undefined,
+          subject: bulk.subject,
+          body: bulk.body,
+          leadIds: pendingLeadIds,
+        }),
+      });
+      const payload = (await res.json()) as { sent?: number; skipped?: number; error?: unknown };
+      if (!res.ok) throw new Error(typeof payload.error === "string" ? payload.error : "Bulk send failed.");
+      // Mark all pending as approved in local state
+      setItemState(prev => {
+        const next = { ...prev };
+        for (const id of pendingLeadIds) next[id] = "approved";
+        return next;
+      });
+      setBulk({ ...bulk, sending: false, done: true, sent: payload.sent ?? 0, skipped: payload.skipped ?? 0 });
+    } catch (caught) {
+      setBulk(prev => prev ? { ...prev, sending: false, error: caught instanceof Error ? caught.message : "Bulk send failed." } : prev);
+    }
+  }
+
   async function skip(pick: OutreachPick) {
     setItemState(prev => ({ ...prev, [pick.leadId]: "working" }));
     try {
@@ -152,6 +201,8 @@ export function OutreachPicksPanel() {
     }
   }
 
+  const pendingCount = data?.picks.filter(p => (itemState[p.leadId] ?? "idle") === "idle").length ?? 0;
+
   return (
     <section className="ops-panel outreach-picks-panel" aria-labelledby="outreach-picks-title">
       <div className="ops-panel-header compact">
@@ -159,11 +210,18 @@ export function OutreachPicksPanel() {
           <p className="section-eyebrow">Daily outreach</p>
           <h2 id="outreach-picks-title">Today&apos;s picks</h2>
         </div>
-        {data ? (
-          <span className="outreach-picks-meta">
-            {data.picks.length} to contact · {data.needsContactInfo} need email · {data.excludedCount} held back
-          </span>
-        ) : null}
+        <div className="outreach-picks-header-right">
+          {data ? (
+            <span className="outreach-picks-meta">
+              {data.picks.length} to contact · {data.needsContactInfo} need email · {data.excludedCount} held back
+            </span>
+          ) : null}
+          {pendingCount > 1 ? (
+            <button type="button" className="primary outreach-send-all-btn" onClick={openBulk}>
+              Send all ({pendingCount})
+            </button>
+          ) : null}
+        </div>
       </div>
 
       {loading ? <p className="creator-drawer-status">Scoring creators…</p> : null}
@@ -185,6 +243,7 @@ export function OutreachPicksPanel() {
       ) : null}
 
       {preview ? <PreviewModal preview={preview} setPreview={setPreview} campaigns={campaigns} onRegenerate={regenerate} onRewrite={rewrite} onSend={send} /> : null}
+      {bulk ? <BulkSendModal bulk={bulk} setBulk={setBulk} campaigns={campaigns} pendingCount={pendingCount} onSend={sendBulk} /> : null}
     </section>
   );
 }
@@ -231,6 +290,96 @@ function OutreachPickCard({ pick, state, onApprove, onSkip }: { pick: OutreachPi
         </button>
       </div>
     </article>
+  );
+}
+
+function BulkSendModal({ bulk, setBulk, campaigns, pendingCount, onSend }: {
+  bulk: BulkState;
+  setBulk: (v: BulkState | null) => void;
+  campaigns: Campaign[];
+  pendingCount: number;
+  onSend: () => void;
+}) {
+  const busy = bulk.sending;
+
+  if (bulk.done) {
+    return (
+      <div className="ops-modal-backdrop" role="presentation" onClick={() => setBulk(null)}>
+        <section className="ops-modal outreach-preview-modal" role="dialog" aria-modal="true" onClick={e => e.stopPropagation()}>
+          <div className="ops-modal-header">
+            <div>
+              <p className="section-eyebrow">Bulk send complete</p>
+              <h2>All done!</h2>
+              <p>{bulk.sent} email{bulk.sent === 1 ? "" : "s"} sent{bulk.skipped ? `, ${bulk.skipped} skipped (already in-flight or suppressed)` : ""}.</p>
+            </div>
+            <button type="button" onClick={() => setBulk(null)}>Close</button>
+          </div>
+        </section>
+      </div>
+    );
+  }
+
+  return (
+    <div className="ops-modal-backdrop" role="presentation" onClick={() => (busy ? null : setBulk(null))}>
+      <section className="ops-modal outreach-preview-modal" role="dialog" aria-modal="true" aria-label="Bulk send" onClick={e => e.stopPropagation()}>
+        <div className="ops-modal-header">
+          <div>
+            <p className="section-eyebrow">Send to all {pendingCount} creators</p>
+            <h2>Bulk send</h2>
+            <p>
+              Write one email. Use <code>{"{creatorName}"}</code> where you want their name — it&apos;s replaced automatically for each creator.
+            </p>
+          </div>
+          <button type="button" onClick={() => setBulk(null)} disabled={busy}>Close</button>
+        </div>
+
+        <div className="outreach-preview-body">
+          {campaigns.length > 0 ? (
+            <label className="outreach-preview-field">
+              <span>Campaign</span>
+              <select value={bulk.campaignId} disabled={busy} onChange={e => setBulk({ ...bulk, campaignId: e.target.value })}>
+                <option value="">— No campaign —</option>
+                {campaigns.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+              </select>
+            </label>
+          ) : null}
+
+          <label className="outreach-preview-field">
+            <span>Subject</span>
+            <input
+              value={bulk.subject}
+              disabled={busy}
+              placeholder={`e.g. Collaboration with {creatorName}`}
+              onChange={e => setBulk({ ...bulk, subject: e.target.value })}
+            />
+          </label>
+          <label className="outreach-preview-field">
+            <span>Body (an unsubscribe line is added automatically)</span>
+            <textarea
+              rows={9}
+              value={bulk.body}
+              disabled={busy}
+              placeholder={`Hi {creatorName},\n\nI came across your content and loved it…`}
+              onChange={e => setBulk({ ...bulk, body: e.target.value })}
+            />
+          </label>
+
+          {bulk.error ? <p className="creator-drawer-error">{bulk.error}</p> : null}
+
+          <div className="outreach-preview-actions">
+            <button type="button" disabled={busy} onClick={() => setBulk(null)}>Cancel</button>
+            <button
+              type="button"
+              className="primary"
+              disabled={busy || !bulk.subject.trim() || !bulk.body.trim()}
+              onClick={onSend}
+            >
+              {busy ? `Sending…` : `Send to ${pendingCount} creators`}
+            </button>
+          </div>
+        </div>
+      </section>
+    </div>
   );
 }
 
