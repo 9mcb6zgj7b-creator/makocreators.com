@@ -2,6 +2,7 @@ import { NextRequest } from "next/server";
 import ExcelJS from "exceljs";
 import { apiError, created } from "@/lib/api";
 import { getRequestContext } from "@/lib/auth";
+import { prewarmAvatars } from "@/lib/creator-avatar";
 import { attachLeadToCreatorDirectory } from "@/lib/creator-directory";
 import {
   dedupeCreatorLeadInputs,
@@ -13,6 +14,7 @@ import {
 import { prisma } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
+export const maxDuration = 60;
 
 const MAX_IMPORT_ROWS = 500;
 const MAX_FILE_BYTES = 8 * 1024 * 1024;
@@ -115,6 +117,11 @@ export async function POST(req: NextRequest) {
     );
 
     await attachLeadsToCreatorDirectorySafely(leads, validInputs);
+
+    // Resolve + store real profile pictures at ingestion (Instagram CDN links expire,
+    // so we cache the bytes). Time-boxed so it can't stall the import; anything not
+    // warmed here fills in lazily on first view via /api/avatar.
+    await prewarmAvatars(validInputs.map(input => ({ platform: input.platform, handle: input.handle }))).catch(() => {});
 
     return created({
       imported: leads.length,

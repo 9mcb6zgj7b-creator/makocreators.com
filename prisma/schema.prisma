@@ -261,6 +261,30 @@ enum Platform {
   OTHER
 }
 
+// [Claude 2026-06-25] Avatar cache. unavatar.io moved Instagram behind a paid plan,
+// and Instagram's own CDN URLs expire after a few days. So we resolve each creator's
+// real profile picture server-side (Instagram web_profile_info for IG, unavatar for
+// TikTok/YouTube), download the bytes, and store them here keyed by platform+handle.
+// Shared across leads (same creator fetched once) and served via /api/avatar/...
+model CreatorAvatar {
+  key         String       @id // "<platform>:<handle>", lowercased — see avatarKey()
+  platform    Platform
+  handle      String
+  status      AvatarStatus @default(OK)
+  contentType String?
+  data        Bytes?
+  sourceUrl   String?      @db.Text
+  fetchedAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  @@index([status, fetchedAt])
+}
+
+enum AvatarStatus {
+  OK
+  NOT_FOUND
+}
+
 model CreatorMatchRun {
   id          String         @id @default(cuid())
   workspaceId String

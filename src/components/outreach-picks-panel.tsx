@@ -35,13 +35,18 @@ function platformIcon(platform: string): string {
   return "🔗";
 }
 
-// Profile picture via unavatar.io (free, no API key needed).
+// Profile picture served by our own /api/avatar proxy: it resolves Instagram via the
+// IG web API and TikTok/YouTube via unavatar, caches the bytes in Postgres (so links
+// can't expire and unavatar's IG paywall doesn't matter), and 404s when there's no
+// picture — which trips onError below and shows the initials circle instead.
+const AVATAR_PLATFORMS = new Set(["INSTAGRAM", "TIKTOK", "YOUTUBE"]);
+
 function avatarSrc(platformLinks: { platform: string; url: string; handle: string | null }[]): string | null {
   for (const pl of platformLinks) {
-    const platform = detectPlatform(pl.url, pl.platform).toUpperCase();
     if (!pl.handle) continue;
-    if (platform === "INSTAGRAM") return `https://unavatar.io/instagram/${pl.handle}`;
-    if (platform === "TIKTOK") return `https://unavatar.io/tiktok/${pl.handle}`;
+    const platform = detectPlatform(pl.url, pl.platform).toUpperCase();
+    if (!AVATAR_PLATFORMS.has(platform)) continue;
+    return `/api/avatar/${platform.toLowerCase()}/${encodeURIComponent(pl.handle.replace(/^@/, ""))}`;
   }
   return null;
 }
