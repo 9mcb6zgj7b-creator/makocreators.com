@@ -11,6 +11,14 @@
 import { useEffect, useState } from "react";
 import type { OutreachPick, OutreachPicksResult } from "@/lib/outreach-picks";
 
+function platformIcon(platform: string): string {
+  const p = platform.toLowerCase();
+  if (p === "instagram") return "📷";
+  if (p === "tiktok") return "🎵";
+  if (p === "youtube") return "▶️";
+  return "🔗";
+}
+
 function fmtNum(n: number): string {
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
   if (n >= 1_000) return `${(n / 1_000).toFixed(1)}K`;
@@ -277,15 +285,23 @@ function OutreachPickCard({ pick, state, onApprove, onSkip }: { pick: OutreachPi
   const working = state === "working";
   return (
     <article className="outreach-pick-card">
+      <div className="outreach-pick-avatar" aria-hidden="true">
+        {pick.name.charAt(0).toUpperCase()}
+      </div>
       <div className="outreach-pick-main">
         <div className="ops-card-title-row">
           <div className="outreach-pick-name-row">
-            {pick.profileUrl
-              ? <a className="outreach-pick-name" href={pick.profileUrl} target="_blank" rel="noopener noreferrer">{pick.name}</a>
-              : <strong className="outreach-pick-name">{pick.name}</strong>}
+            <strong className="outreach-pick-name">{pick.name}</strong>
             {pick.handle ? <span className="outreach-pick-handle">@{pick.handle}</span> : null}
           </div>
           <span className={`creator-warmth ${pick.warmth}`}>{pick.warmth}</span>
+        </div>
+        <div className="outreach-pick-platform-links">
+          {pick.platformLinks.map(pl => (
+            <a key={pl.url} className={`outreach-platform-link platform-${pl.platform.toLowerCase()}`} href={pl.url} target="_blank" rel="noopener noreferrer">
+              {platformIcon(pl.platform)} {pl.platform}{pl.handle ? ` @${pl.handle}` : ""}
+            </a>
+          ))}
         </div>
         <div className="outreach-pick-stats">
           {pick.followers != null ? <span><span className="outreach-stat-label">Followers</span> {fmtNum(pick.followers)}</span> : null}

@@ -3174,7 +3174,7 @@ h2 {
 .outreach-pick-card {
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: flex-start;
   gap: 16px;
   padding: 14px 16px;
   border: 1px solid #ece7df;
@@ -3193,6 +3193,50 @@ h2 {
   display: grid;
   gap: 6px;
   min-width: 0;
+}
+
+
+
+.outreach-pick-avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  margin-top: 2px;
+  background: linear-gradient(135deg, #f97316, #ea580c);
+  color: #fff;
+  font-weight: 700;
+  font-size: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  user-select: none;
+}
+
+.outreach-pick-platform-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 2px;
+}
+
+.outreach-platform-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  padding: 2px 8px;
+  border-radius: 4px;
+  text-decoration: none;
+  border: 1px solid #e5e7eb;
+  color: #374151;
+  background: #f9fafb;
+}
+
+.outreach-platform-link:hover {
+  background: #f3f4f6;
+  border-color: #d1d5db;
 }
 
 .outreach-pick-name-row {

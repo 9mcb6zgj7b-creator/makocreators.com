@@ -13,11 +13,14 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 
 export type OutreachPlay = "seeding" | "ai_collab" | "visit";
 
+export type PlatformLink = { platform: string; url: string; handle: string | null };
+
 export type OutreachPick = {
   leadId: string;
   name: string;
   handle: string | null;
   profileUrl: string | null;
+  platformLinks: PlatformLink[];
   email: string | null;
   platform: string | null;
   followers: number | null;
@@ -233,6 +236,9 @@ function evaluateGroup(group: CreatorGroup, threads: ThreadRow[], campaignKeywor
   const emailLead = group.leads.find(lead => normalizeEmail(lead.contactEmail)) ?? pickRepresentative(group);
 
   const rep = pickRepresentative(group);
+  const platformLinks: PlatformLink[] = group.leads
+    .filter(l => l.profileUrl)
+    .map(l => ({ platform: l.platform, url: l.profileUrl, handle: l.handle ?? null }));
   return {
     kind: "pick",
     pick: {
@@ -240,6 +246,7 @@ function evaluateGroup(group: CreatorGroup, threads: ThreadRow[], campaignKeywor
       name: groupName(group),
       handle: rep.handle ?? null,
       profileUrl: rep.profileUrl ?? null,
+      platformLinks,
       email,
       platform: group.leads.map(lead => lead.platform).find(Boolean) ?? null,
       followers: maxNumber(group.leads.map(lead => lead.followers)) || null,
