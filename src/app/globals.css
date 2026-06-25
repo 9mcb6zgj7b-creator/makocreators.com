@@ -3193,16 +3193,31 @@ h2 {
   display: grid;
   gap: 6px;
   min-width: 0;
+  flex: 1;
 }
 
 
+
+.outreach-pick-avatar-wrap {
+  flex-shrink: 0;
+  width: 44px;
+  height: 44px;
+  position: relative;
+  align-self: center;
+}
 
 .outreach-pick-avatar {
   width: 44px;
   height: 44px;
   border-radius: 50%;
-  flex-shrink: 0;
-  margin-top: 2px;
+  object-fit: cover;
+  display: block;
+}
+
+.outreach-pick-avatar-fallback {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
   background: linear-gradient(135deg, #f97316, #ea580c);
   color: #fff;
   font-weight: 700;
@@ -3237,6 +3252,13 @@ h2 {
 .outreach-platform-link:hover {
   background: #f3f4f6;
   border-color: #d1d5db;
+}
+
+.outreach-pick-top-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
 }
 
 .outreach-pick-name-row {

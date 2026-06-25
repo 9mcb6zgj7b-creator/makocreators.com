@@ -11,12 +11,39 @@
 import { useEffect, useState } from "react";
 import type { OutreachPick, OutreachPicksResult } from "@/lib/outreach-picks";
 
+// Detect platform from URL (more reliable than the stored platform field).
+function detectPlatform(url: string, stored: string): string {
+  if (/tiktok\.com/i.test(url)) return "TIKTOK";
+  if (/instagram\.com/i.test(url)) return "INSTAGRAM";
+  if (/youtube\.com|youtu\.be/i.test(url)) return "YOUTUBE";
+  return stored;
+}
+
+function platformLabel(platform: string): string {
+  const p = platform.toUpperCase();
+  if (p === "INSTAGRAM") return "Instagram";
+  if (p === "TIKTOK") return "TikTok";
+  if (p === "YOUTUBE") return "YouTube";
+  return platform;
+}
+
 function platformIcon(platform: string): string {
-  const p = platform.toLowerCase();
-  if (p === "instagram") return "📷";
-  if (p === "tiktok") return "🎵";
-  if (p === "youtube") return "▶️";
+  const p = platform.toUpperCase();
+  if (p === "INSTAGRAM") return "📷";
+  if (p === "TIKTOK") return "🎵";
+  if (p === "YOUTUBE") return "▶️";
   return "🔗";
+}
+
+// Profile picture via unavatar.io (free, no API key needed).
+function avatarSrc(platformLinks: { platform: string; url: string; handle: string | null }[]): string | null {
+  for (const pl of platformLinks) {
+    const platform = detectPlatform(pl.url, pl.platform).toUpperCase();
+    if (!pl.handle) continue;
+    if (platform === "INSTAGRAM") return `https://unavatar.io/instagram/${pl.handle}`;
+    if (platform === "TIKTOK") return `https://unavatar.io/tiktok/${pl.handle}`;
+  }
+  return null;
 }
 
 function fmtNum(n: number): string {
@@ -283,13 +310,29 @@ function OutreachPickCard({ pick, state, onApprove, onSkip }: { pick: OutreachPi
   }
 
   const working = state === "working";
+  const imgSrc = avatarSrc(pick.platformLinks);
+  // Deduplicate links by detected platform+handle so the same creator doesn't appear twice.
+  const seenKeys = new Set<string>();
+  const uniqueLinks = pick.platformLinks.filter(pl => {
+    const p = detectPlatform(pl.url, pl.platform).toUpperCase();
+    const key = `${p}:${pl.handle ?? pl.url}`;
+    if (seenKeys.has(key)) return false;
+    seenKeys.add(key);
+    return true;
+  });
+
   return (
     <article className="outreach-pick-card">
-      <div className="outreach-pick-avatar" aria-hidden="true">
-        {pick.name.charAt(0).toUpperCase()}
+      <div className="outreach-pick-avatar-wrap">
+        {imgSrc
+          ? <img className="outreach-pick-avatar" src={imgSrc} alt={pick.name} width={44} height={44} onError={e => { (e.currentTarget as HTMLImageElement).style.display = "none"; (e.currentTarget.nextElementSibling as HTMLElement).style.display = "flex"; }} />
+          : null}
+        <div className="outreach-pick-avatar-fallback" style={imgSrc ? { display: "none" } : {}}>
+          {pick.name.charAt(0).toUpperCase()}
+        </div>
       </div>
       <div className="outreach-pick-main">
-        <div className="ops-card-title-row">
+        <div className="outreach-pick-top-row">
           <div className="outreach-pick-name-row">
             <strong className="outreach-pick-name">{pick.name}</strong>
             {pick.handle ? <span className="outreach-pick-handle">@{pick.handle}</span> : null}
@@ -297,11 +340,14 @@ function OutreachPickCard({ pick, state, onApprove, onSkip }: { pick: OutreachPi
           <span className={`creator-warmth ${pick.warmth}`}>{pick.warmth}</span>
         </div>
         <div className="outreach-pick-platform-links">
-          {pick.platformLinks.map(pl => (
-            <a key={pl.url} className={`outreach-platform-link platform-${pl.platform.toLowerCase()}`} href={pl.url} target="_blank" rel="noopener noreferrer">
-              {platformIcon(pl.platform)} {pl.platform}{pl.handle ? ` @${pl.handle}` : ""}
-            </a>
-          ))}
+          {uniqueLinks.map(pl => {
+            const p = detectPlatform(pl.url, pl.platform);
+            return (
+              <a key={pl.url} className={`outreach-platform-link`} href={pl.url} target="_blank" rel="noopener noreferrer">
+                {platformIcon(p)} {platformLabel(p)}{pl.handle ? ` @${pl.handle}` : ""}
+              </a>
+            );
+          })}
         </div>
         <div className="outreach-pick-stats">
           {pick.followers != null ? <span><span className="outreach-stat-label">Followers</span> {fmtNum(pick.followers)}</span> : null}
@@ -312,7 +358,6 @@ function OutreachPickCard({ pick, state, onApprove, onSkip }: { pick: OutreachPi
         <p className="outreach-pick-why">{pick.whyNow}</p>
         <div className="outreach-pick-tags">
           <span className="outreach-pick-play">{pick.playLabel}</span>
-          {pick.platform ? <span className="outreach-pick-platform">{pick.platform}</span> : null}
           <span className="outreach-pick-score">Score {pick.score}</span>
         </div>
       </div>
